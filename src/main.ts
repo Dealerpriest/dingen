@@ -4,6 +4,14 @@ import router from './router';
 import store from './store';
 import './registerServiceWorker';
 
+import Parse from 'parse';
+
+Parse.serverURL = 'https://parseapi.back4app.com'; // This is your Server URL
+Parse.initialize(
+  '2J5Dr4xjbf6qtsKlXNrhUAHJuhUKm4bWDazqWSRg', // This is your Application ID
+  '4j0MIcOyl5GMPYqvTVtZ4GuN5COcyozAArSA9N9l', // This is your Javascript key
+);
+
 Vue.config.productionTip = false;
 
 new Vue({

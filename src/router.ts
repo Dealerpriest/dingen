@@ -1,6 +1,9 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import Home from './views/Home.vue';
+import Thing from './views/Thing.vue';
+import Browser from './views/Browser.vue';
+
 
 Vue.use(Router);
 
@@ -12,6 +15,16 @@ export default new Router({
       path: '/',
       name: 'home',
       component: Home,
+    },
+    {
+      path: '/thing',
+      name: 'thing',
+      component: Thing,
+    },
+    {
+      path: '/browser',
+      name: 'browser',
+      component: Browser,
     },
     {
       path: '/about',
