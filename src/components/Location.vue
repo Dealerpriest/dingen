@@ -1,6 +1,6 @@
 <template>
   <div class="location" @click="changeLocation">
-    {{loc.get("name")}} | {{loc.get("objectId")}}
+    {{ loc.get("name") }} | {{ loc.id }}
   </div>
 </template>
 
@@ -9,31 +9,30 @@ import Vue from "vue";
 import Parse from "parse";
 
 export default Vue.extend({
-  name: 'browser',
+  name: "browser",
   mounted() {
-    //console.log(this.loc.name)
+    // console.log(this.loc.name)
   },
 
   props: {
     loc: Object
   },
   data() {
-    return {
-
-    };
+    return {};
   },
   methods: {
     changeLocation() {
-      console.log("clicked")
-      this.$emit("changeLoc", this.loc)
+      console.log("clicked");
+      this.$emit("changeLoc", this.loc);
     }
   },
-  components: {},
+  components: {}
 });
 </script>
 
 <style lang="scss">
-    .location {
-        background-color: lightgray 
-    }
+.location {
+  background-color: lightgray;
+  display: flex;
+}
 </style>

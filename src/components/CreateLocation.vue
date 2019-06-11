@@ -13,9 +13,9 @@
 </template>
 
 <script lang="ts">
-import Vue from "vue";
-import Parse from "parse";
-import Location from "@/components/Location.vue"
+import Vue from 'vue';
+import Parse from 'parse';
+import Location from '@/components/Location.vue';
 
 export default Vue.extend({
   name: 'browser',
@@ -23,25 +23,25 @@ export default Vue.extend({
     this.getAllLocations();
   },
   data() {
-    let obj: {
+    const obj: {
       name: string,
       type: string,
       parent: any
-      locations: Array<any>
+      locations: any[],
     } = {
-      name: "",
-      type: "",
+      name: '',
+      type: '',
       parent: null,
-      locations: []
+      locations: [],
     };
-    return obj
+    return obj;
   },
   methods: {
     getAllLocations() {
       const Location = Parse.Object.extend('Location');
       const query = new Parse.Query(Location);
       query.find().then((results) => {
-        this.locations = results
+        this.locations = results;
       });
     },
     save() {
@@ -51,9 +51,9 @@ export default Vue.extend({
       newLocation.set('name', this.name);
       newLocation.set('type', this.type);
       newLocation.set('parent', this.parent);
-      newLocation.save().then((res:any) => console.log(res), (err:any) => console.error(err));
+      newLocation.save().then((res: any) => console.log(res), (err: any) => console.error(err));
       console.log(newLocation);
-    }
+    },
   },
   components: {
   },

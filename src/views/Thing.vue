@@ -13,8 +13,8 @@
 </template>
 
 <script lang="ts">
-import Vue from "vue";
-import Parse from "parse";
+import Vue from 'vue';
+import Parse from 'parse';
 
 export default Vue.extend({
   name: 'thing',
@@ -23,14 +23,14 @@ export default Vue.extend({
 
   },
   data() {
-    let obj: {
+    const obj: {
       thingName: string,
-      things: Array<any>
+      things: any[],
     } = {
-      thingName: "",
+      thingName: '',
       things: [],
     };
-    return obj
+    return obj;
   },
   methods: {
     all() {
