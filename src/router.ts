@@ -2,6 +2,7 @@ import Vue from 'vue';
 import Router from 'vue-router';
 import Home from './views/Home.vue';
 import Thing from './views/Thing.vue';
+import Create from './views/Create.vue';
 import Browser from './views/Browser.vue';
 
 
@@ -20,6 +21,11 @@ export default new Router({
       path: '/thing',
       name: 'thing',
       component: Thing,
+    },
+    {
+      path: '/create',
+      name: 'create',
+      component: Create,
     },
     {
       path: '/browser',

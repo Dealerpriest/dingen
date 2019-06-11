@@ -1,12 +1,10 @@
 <template>
   <div class="browser">
-    <CreateLocation />
-
     <h1>{{ currentLocation ? currentLocation.get("name") : "Browse" }}</h1>
     <h3 @click="goToParent">Tillbaka</h3>
     <div id="browser-container">
       <template v-for="loc in locations">
-        <Location :key="loc.id" :loc="loc" @changeLoc="changeLocation" />
+        <Location :key="loc.id" :loc="loc" @changeLoc="changeLocation"/>
       </template>
     </div>
   </div>
@@ -39,7 +37,7 @@ export default class Browser extends Vue {
     this.currentLocation = this.currentLocation.get("parent");
     const query = new Parse.Query("Location");
     query.equalTo("parent", this.currentLocation);
-    query.find().then(results => {
+    query.find().then((results: any[]) => {
       console.log(results);
       this.locations = results;
     });
@@ -48,7 +46,7 @@ export default class Browser extends Vue {
   public getLocationsByType(type: string) {
     const query = new Parse.Query("Location");
     query.equalTo("type", type);
-    query.find().then(results => {
+    query.find().then((results: any[]) => {
       this.locations = results;
     });
   }
@@ -57,7 +55,7 @@ export default class Browser extends Vue {
     this.currentLocation = location;
     const query = new Parse.Query("Location");
     query.equalTo("parent", location);
-    query.find().then(results => {
+    query.find().then((results: any[]) => {
       console.log(results);
       this.locations = results;
     });
@@ -65,7 +63,7 @@ export default class Browser extends Vue {
 }
 </script>
 
-<style lang="scss">
+<style scoped lang="scss">
 #browser-container {
   background-color: lightblue;
 }

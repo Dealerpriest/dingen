@@ -1,8 +1,4 @@
-<template>
-  <div class="location" @click="changeLocation">
-    {{ loc.get("name") }} | {{ loc.id }}
-  </div>
-</template>
+<template></template>
 
 <script lang="ts">
 import Vue from "vue";
