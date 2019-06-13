@@ -2,8 +2,8 @@
   <div class="create">
     <div id="forms">
       <div id="buttons">
-        <v-btn depressed large color="normal" @click="changeTab('createThing')">Skapa Things</v-btn>
-        <v-btn depressed large color="normal" @click="changeTab('createLocation')">Skapa Locations</v-btn>
+        <v-btn depressed large color="normal" @click="changeTab('createThing')">Skapa Ny Sak</v-btn>
+        <v-btn depressed large color="normal" @click="changeTab('createLocation')">Skapa Ny Plats</v-btn>
       </div>
       <keep-alive>
         <component :is="tab"/>
@@ -45,16 +45,17 @@ export default class Create extends Vue {
   #forms {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    width: 60vw;
+    min-width: 400px;
+    margin-bottom: 30px;
 
     #buttons {
-      width: 70vw;
+      width: 100%;
       display: flex;
       justify-content: space-around;
       margin-bottom: 30px;
     }
-
-    align-items: center;
-    width: 70vw;
   }
 }
 </style>
