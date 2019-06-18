@@ -1,48 +1,46 @@
 <template>
   <div class="browser-location">
-    <v-card width="100%" height="350px">
-      <v-card-title>
-        <v-flex column>
-          <v-icon @click="goToParent" medium left>arrow_back</v-icon>
-          <span
-            class="font-weight-light"
-            style="font-size: 18px"
-          >{{ currentLocation ? "Vald plats: " + currentLocation.get("name") : "Välj plats:" }}</span>
-          <v-text-field
-            v-model="locationSearch"
-            append-icon="search"
-            clear-icon="mdi-close-circle"
-            clearable
-            label="Sök plats"
-            type="text"
-            single-line
-            width="100%"
-          ></v-text-field>
-        </v-flex>
-      </v-card-title>
-
-      <v-card-text>
-        <v-data-table
-          :headers="headers"
-          :items="locations"
-          class="elevation-1"
-          hide-actions
-          hide-headers
-        >
-          <template v-slot:items="props">
-            <td style="width: 100%" @click="changeLocation(props.item)">{{ props.item.get("name") }}</td>
-            <td
-              v-if="editable"
-              class="justify-center layout px-0 md1"
-              style="width: 80px; margin: 0;"
-            >
-              <v-icon small class="mr-2" @click="$emit('editLoc', props.item)">edit</v-icon>
-              <v-icon small @click="$emit('delLoc', props.item)">delete</v-icon>
-            </td>
-          </template>
-        </v-data-table>
-      </v-card-text>
-    </v-card>
+    <v-layout column style="height: 50vh; background-color: white; padding: 30px" width="300px">
+      <v-flex column>
+        <v-icon @click="goToParent" medium left>arrow_back</v-icon>
+        <span
+          class="font-weight-light"
+          style="font-size: 18px"
+        >{{ currentLocation ? "Vald plats: " + currentLocation.get("name") : "Välj plats:" }}</span>
+        <v-text-field
+          v-model="locationSearch"
+          append-icon="search"
+          clear-icon="mdi-close-circle"
+          clearable
+          label="Sök plats"
+          type="text"
+          single-line
+          width="100%"
+        ></v-text-field>
+      </v-flex>
+      <v-flex style="overflow: auto" class="elevation-1" width="100%">
+        <v-layout width="100%" style="overflow: auto" height="100%">
+          <v-card width="100%" height="100%">
+            <v-data-table :headers="headers" :items="locations" hide-actions hide-headers md12>
+              <template v-slot:items="props">
+                <td
+                  style="width: 100%"
+                  @click="changeLocation(props.item)"
+                >{{ props.item.get("name") }}</td>
+                <td
+                  v-if="editable"
+                  class="justify-center layout px-0 md1"
+                  style="width: 80px; margin: 0;"
+                >
+                  <v-icon small class="mr-2" @click="$emit('editLoc', props.item)">edit</v-icon>
+                  <v-icon small @click="$emit('delLoc', props.item)">delete</v-icon>
+                </td>
+              </template>
+            </v-data-table>
+          </v-card>
+        </v-layout>
+      </v-flex>
+    </v-layout>
   </div>
 </template>
 

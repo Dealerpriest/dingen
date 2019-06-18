@@ -2,11 +2,14 @@ import Vue from 'vue';
 import App from './App.vue';
 import router from './router';
 import store from './store';
+import '@mdi/font/css/materialdesignicons.css'
 import './registerServiceWorker';
 import Vuetify from "vuetify";
 import 'vuetify/dist/vuetify.min.css'
 
-Vue.use(Vuetify)
+Vue.use(Vuetify, {
+  iconfont: 'mdi'
+})
 
 import Parse from 'parse';
 
