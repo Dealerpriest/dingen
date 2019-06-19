@@ -26,7 +26,6 @@
                 <v-switch v-model="thingOrContainer" label="Skapa sak eller container:"></v-switch>
                 <v-text-field solo v-model="name" :counter="60" label="Namn" required></v-text-field>
                 <v-textarea solo name="input" label="Beskrivning" value="T" v-model="description"></v-textarea>
-
                 <v-text-field
                   v-if="thingOrContainer"
                   solo
@@ -44,6 +43,7 @@
                   required
                 ></v-text-field>
                 <v-combobox
+                  v-if="thingOrContainer"
                   v-model="tags"
                   :items="suggestedTags"
                   label="Taggar"
@@ -185,7 +185,7 @@ export default class CreateLocation extends Vue {
     query.find().then((results: any[]) => {
       this.allTags = results;
       this.suggestedTags = this.allTags.map(x => {
-        return { name: x.get("name"), value: x.id };
+        return { name: x.get("name"), value: x };
       });
     });
 
@@ -218,6 +218,18 @@ export default class CreateLocation extends Vue {
 
     if (this.updatableObj.className == "Thing") {
       this.amount = this.updatableObj.get("amount");
+      let relation = this.updatableObj.relation("tags");
+      const relationQuery = relation.query();
+      relationQuery
+        .find()
+        .then((result: any) => {
+          this.tags = result.map((x: any) => {
+            return { name: x.get("name"), value: x };
+          });
+        })
+        .catch((err: any) => {
+          console.error(err);
+        });
     } else if (this.updatableObj.className == "Location") {
       this.type = this.updatableObj.get("type");
     }
@@ -241,6 +253,9 @@ export default class CreateLocation extends Vue {
   @Watch("tagSearch")
   filterTags(val: string, oldVal: string) {
     //Transform the pars array to objecarray compatible with the combobox component
+    if (val == null) {
+      val = "";
+    }
     this.suggestedTags = this.allTags
       .filter(x =>
         x
@@ -249,7 +264,7 @@ export default class CreateLocation extends Vue {
           .includes(val.toLowerCase())
       )
       .map(x => {
-        return { name: x.get("name"), value: x.id };
+        return { name: x.get("name"), value: x };
       });
 
     //add subcategories to the top
@@ -274,13 +289,27 @@ export default class CreateLocation extends Vue {
     }
   }
 
-  updateOrCreate() {
+  async updateOrCreate() {
     if (this.updatableObj) {
       this.updatableObj.set("name", this.name);
       this.updatableObj.set("description", this.description);
 
       if (this.updatableObj.className == "Thing") {
         this.updatableObj.set("amount", this.amount);
+        let tagRelation = this.updatableObj.relation("tags");
+        const relationQuery = tagRelation.query();
+        let result = await relationQuery.find();
+        if (result) {
+          tagRelation.remove(result);
+        }
+
+        tagRelation.add(
+          this.tags
+            .filter(x => {
+              return typeof x === "object";
+            })
+            .map(x => x.value)
+        );
       } else if (this.updatableObj.className == "Location") {
         this.updatableObj.set("type", this.type);
       }
@@ -288,12 +317,20 @@ export default class CreateLocation extends Vue {
       this.updatableObj.save().then(
         (response: any) => {
           console.log("Updated Location", response);
-          this.$emit("updOrCr", this.updatableObj);
+          if (this.updatableObj.className == "Thing") {
+            this.$emit("updOrCr", {
+              thing: this.updatableObj,
+              tags: this.tags.map(x => x.value)
+            });
+          } else {
+            this.$emit("updOrCr", this.updatableObj);
+          }
           this.updatableObj = null;
           this.name = "";
           this.description = "";
           this.amount = "";
           this.type = "";
+          this.tags = [];
         },
         (error: any) => {
           console.error("Error while updating Location", error);
@@ -309,12 +346,24 @@ export default class CreateLocation extends Vue {
         newThing.set("description", this.description);
         newThing.set("amount", this.amount);
         newThing.set("parent", this.container);
+        let formatedTags = this.tags
+          .filter(x => {
+            return typeof x === "object";
+          })
+          .map(x => x.value);
+        if (formatedTags.length > 0) {
+          let tagRelation = newThing.relation("tags");
+          tagRelation.add(formatedTags);
+        }
 
         newThing
           .save()
           .then((result: any) => {
             console.log("Item created", result);
-            this.$emit("updOrCr", result);
+            this.$emit("updOrCr", {
+              thing: result,
+              tags: this.tags.map(x => x.value)
+            });
           })
           .catch((error: any) => {
             console.error("Error while creating Item: ", error);
