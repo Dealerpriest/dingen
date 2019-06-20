@@ -66,7 +66,7 @@ import Location from "@/components/Location.vue";
 export default class Browser extends Vue {
   selectedContainer: any = null;
   containers: any[] = [];
-  currentLocation: any = null;
+  currentContainer: any = null;
   containerSearch: string = "";
   headers = [
     {
@@ -105,23 +105,10 @@ export default class Browser extends Vue {
   }
 
   goToParent() {
-    this.currentLocation = this.currentLocation.get("parent");
-    this.selectedContainer = this.currentLocation;
-    this.$emit("conChanged", this.selectedContainer);
-    if (this.currentLocation) {
-      const query = new Parse.Query("Location");
-      query.equalTo("parent", this.currentLocation);
-      query.find().then((results: any[]) => {
-        console.log(results);
-        this.containers = results;
-      });
-    } else {
-      const query = new Parse.Query("Location");
-      query.equalTo("parent", null);
-      query.find().then((results: any[]) => {
-        this.containers = results;
-      });
-    }
+      if (this.currentContainer) {
+        this.$emit("conChanged", this.selectedContainer);
+        this.changeContainer(this.currentContainer.get("parent"));
+      }
   }
 
   selectContainer(con: any) {
@@ -129,14 +116,25 @@ export default class Browser extends Vue {
     this.$emit("conChanged", con);
   }
 
-  changeContainer(location: any) {
-    this.currentLocation = location;
-    const query = new Parse.Query("Location");
-    query.equalTo("parent", location);
+  changeContainer(container: any) {
+    this.currentContainer = container;
+    this.selectedContainer = container;
+    let query = null;
+    if (this.currentContainer === undefined || this.currentContainer === null) {
+      const nullQuery = new Parse.Query("Location");
+      nullQuery.equalTo("parent", null);
+
+      const undefinedQuery = new Parse.Query("Location");
+      undefinedQuery.equalTo("parent", undefined);
+
+      query = Parse.Query.or(nullQuery, undefinedQuery);
+    } else {
+      query = new Parse.Query("Location");
+      query.equalTo("parent", this.currentContainer);
+    }
+
     query.find().then((results: any[]) => {
-      if (results.length > 0) {
-        this.containers = results;
-      }
+      this.containers = results;
     });
   }
 }

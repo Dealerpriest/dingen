@@ -118,9 +118,9 @@ export default class Search extends Vue {
 
   openObj(obj: any) {
     if (obj.className === "Thing") {
-      this.$router.push("/browser#" + obj.get("parent").id);
+      this.$router.push("/browser/" + obj.get("parent").id);
     } else if (obj.className === "Location") {
-      this.$router.push("/browser#" + obj.id);
+      this.$router.push("/browser/" + obj.id);
     }
   }
 }
