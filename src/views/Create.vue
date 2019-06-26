@@ -17,13 +17,13 @@ import Vue from "vue";
 import Component from "vue-class-component";
 import Parse from "parse";
 import CreateThing from "@/components/CreateThing.vue";
-import CreateLocation from "@/components/CreateLocation.vue";
+import CreateObject from "@/components/CreateObject.vue";
 
 @Component({
   // @ts-ignore
   components: {
     CreateThing,
-    CreateLocation
+    CreateObject
   },
   props: {}
 })

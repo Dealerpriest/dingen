@@ -69,7 +69,7 @@ import Vue from "vue";
 import Component from "vue-class-component";
 import { Watch } from "vue-property-decorator";
 import Parse from "parse";
-import BrowseLocation from "@/components/BrowseLocation.vue";
+import BrowseLocation from "@/components/BrowseContainer.vue";
 
 @Component({
   // @ts-ignore

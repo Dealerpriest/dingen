@@ -13,11 +13,11 @@ Vue.use(Vuetify, {
 
 import Parse from 'parse';
 
-Parse.serverURL = 'https://parseapi.back4app.com'; // This is your Server URL
+Parse.serverURL = 'http://192.168.1.14:1337/parse'; // This is your Server URL
 Parse.initialize(
-  '2J5Dr4xjbf6qtsKlXNrhUAHJuhUKm4bWDazqWSRg', // This is your Application ID
-  '4j0MIcOyl5GMPYqvTVtZ4GuN5COcyozAArSA9N9l', // This is your Javascript key
+  'dingelingen', // This is your Application ID
 );
+
 
 Vue.config.productionTip = false;
 

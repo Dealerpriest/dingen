@@ -1,5 +1,5 @@
 <template>
-    <div class="create-location">
+    <div class="create-location" @keydown.ctrl.enter="updateOrCreate">
         <v-dialog v-model="editDialog" persistent max-width="300">
             <v-card>
                 <v-card-title class="headline">Du har osparad data!</v-card-title>
@@ -16,20 +16,24 @@
                 <span class="title font-weight-light">{{formTitle}}</span>
             </v-card-title>
             <v-card-text>
-                <v-form>
+                <v-form @keydown.ctrl.enter="updateOrCreate">
                     <v-container column fluid grow>
                         <v-layout height="100%">
                             <v-flex md12 fill-height>
-                                <v-text-field solo v-model="name" :counter="60" label="Namn" required></v-text-field>
-                                <v-textarea solo name="input" label="Beskrivning" value="T"
-                                            v-model="description"></v-textarea>
+                                <v-text-field solo v-model="name" ref="nameInput" :counter="60" label="Namn" required>
+
+                                </v-text-field>
+                                <v-textarea solo name="input" label="Beskrivning" v-model="description"
+                                            @keydown.ctrl.enter="updateOrCreate"></v-textarea>
+                                <v-card raised style="height: 150px; overflow: auto; margin-bottom: 30px">
+                                    <v-card-text v-html="getMarkedDesc"></v-card-text>
+                                </v-card>
                                 <v-text-field
                                         v-if="thingOrContainer"
                                         solo
                                         v-model="amount"
                                         :counter="10"
                                         label="Antal"
-                                        required
                                 ></v-text-field>
                                 <v-text-field
                                         v-if="!thingOrContainer"
@@ -37,7 +41,6 @@
                                         v-model="type"
                                         :counter="10"
                                         label="Typ"
-                                        required
                                 ></v-text-field>
                                 <v-combobox
                                         v-if="thingOrContainer"
@@ -99,17 +102,16 @@
     import Component from "vue-class-component";
     import {Watch, Prop} from "vue-property-decorator";
     import Parse from "parse";
-
-    import Location from "@/components/Location.vue";
-    import BrowseLocation from "@/components/BrowseLocation.vue";
+    import marked from "marked"
+    import BrowseContainer from "@/components/BrowseContainer.vue";
 
     @Component({
         // @ts-ignore
         components: {
-            BrowseLocation
+            BrowseContainer
         }
     })
-    export default class CreateLocation extends Vue {
+    export default class CreateObject extends Vue {
         public updatableObj: any = null;
         public updatableObjCache: any = null;
         public name: string = "";
@@ -140,12 +142,19 @@
             }
         }
 
+        get getMarkedDesc() {
+            return this.description && this.description.length > 0?
+                marked(this.description, {sanitize: true}): "Förhandvisning för beskrivningen.."
+        }
+
         @Watch("curCon")
         computeCurrentContainer(val: any) {
             this.container = val;
         }
 
         public setFormData(obj: any, toc: boolean) {
+            //@ts-ignore
+            //this.$nextTick(() => this.$refs.nameInput.$el.children[0].focus())
             this.thingOrContainer = toc;
             if (obj != null) {
                 if (this.updatableObj) {
@@ -220,7 +229,7 @@
                     .catch((err: any) => {
                         console.error(err);
                     });
-            } else if (this.updatableObj.className == "Location") {
+            } else if (this.updatableObj.className == "Container") {
                 this.type = this.updatableObj.get("type");
             }
             this.name = this.updatableObj.get("name");
@@ -229,10 +238,6 @@
 
         denyEditObj() {
             this.editDialog = false;
-        }
-
-        deleteObj() {
-            console.log("Not implemented yet!");
         }
 
         removeTag(item: any) {
@@ -289,31 +294,32 @@
                     let tagRelation = this.updatableObj.relation("tags");
                     const relationQuery = tagRelation.query();
                     let result = await relationQuery.find();
-                    if (result) {
+                    if (result && result.length > 0) {
                         tagRelation.remove(result);
                     }
 
-                    tagRelation.add(
-                        this.tags
-                            .filter(x => {
-                                return typeof x === "object";
-                            })
-                            .map(x => x.value)
-                    );
-                } else if (this.updatableObj.className == "Location") {
+                    tagRelation = this.updatableObj.relation("tags")
+
+                    let formatedTags = this.tags
+                        .filter(x => {
+                            return typeof x === "object";
+                        })
+                        .map(x => x.value);
+
+                    if (formatedTags.length > 0) {
+                        tagRelation.add(formatedTags);
+                    }
+
+                } else if (this.updatableObj.className == "Container") {
                     this.updatableObj.set("type", this.type);
                 }
 
-                this.updatableObj.save().then(
-                    (response: any) => {
+                this.updatableObj.save().then(async (response: any) => {
                         console.log("Updated object", response);
                         if (this.updatableObj.className == "Thing") {
-                            this.$emit("updOrCr", {
-                                thing: this.updatableObj,
-                                tags: this.tags.map(x => x.value)
-                            });
+                            this.$emit("updOrCr", await this.$store.dispatch("parseThing", response));
                         } else {
-                            this.$emit("updOrCr", this.updatableObj);
+                            this.$emit("updOrCr", await this.$store.dispatch("parseContainer", response));
                         }
                         this.updatableObj = null;
                         this.name = "";
@@ -345,15 +351,12 @@
                         let tagRelation = newThing.relation("tags");
                         tagRelation.add(formatedTags);
                     }
-
+                    console.log("sjsda")
                     newThing
                         .save()
-                        .then((result: any) => {
+                        .then(async (result: any) => {
                             console.log("Item created", result);
-                            this.$emit("updOrCr", {
-                                thing: result,
-                                tags: this.tags.map(x => x.value)
-                            });
+                            this.$emit("updOrCr", await this.$store.dispatch("parseThing", result));
                             this.updatableObj = null;
                             this.name = "";
                             this.description = "";
@@ -366,22 +369,22 @@
                             this.$emit("updOrCr", null);
                         });
                 } else {
-                    const Location = Parse.Object.extend("Location");
-                    const newLocation = new Location();
-                    newLocation.set("name", this.name);
-                    newLocation.set("type", this.type);
-                    newLocation.set("description", this.description);
-                    newLocation.set("parent", this.container);
-                    newLocation.save().then(
-                        (response: any) => {
-                            this.$emit("updOrCr", response);
+                    const Container = Parse.Object.extend("Container");
+                    const newContainer = new Container();
+                    newContainer.set("name", this.name);
+                    newContainer.set("type", this.type);
+                    newContainer.set("description", this.description);
+                    newContainer.set("parent", this.container);
+                    newContainer.save().then(
+                        async (result: any) => {
+                            this.$emit("updOrCr", await this.$store.dispatch("parseContainer", result));
                             this.updatableObj = null;
                             this.name = "";
                             this.description = "";
                             this.amount = "";
                             this.type = "";
                             this.tags = [];
-                            console.log(response);
+                            console.log(result);
                         },
                         (err: any) => {
                             console.error(err);

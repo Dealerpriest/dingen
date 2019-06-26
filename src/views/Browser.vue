@@ -1,8 +1,14 @@
 <template>
     <div class="browser">
+        <v-snackbar v-model="showInfo" bottom right :timeout="3000" color="green">
+            {{ infoText }}
+            <v-btn dark flat @click="showInfo = false">
+                <v-icon>close</v-icon>
+            </v-btn>
+        </v-snackbar>
         <v-dialog v-model="errorDialog" max-width="300px">
             <v-card>
-                <v-card-title class="headline">OOpss.. Error!</v-card-title>
+                <v-card-title class="headline" color="red">OOpss..!</v-card-title>
                 <v-card-text>{{errorMsg}}</v-card-text>
                 <v-card-actions>
                     <v-spacer></v-spacer>
@@ -10,8 +16,33 @@
                 </v-card-actions>
             </v-card>
         </v-dialog>
+        <v-dialog v-model="warningDialog" max-width="300px">
+            <v-card>
+                <v-card-title class="headline">Varning.</v-card-title>
+                <v-card-text>{{warningMsg}}</v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="gray darken-1" flat @click="selectedObjectAction()">OK</v-btn>
+                    <v-btn color="gray darken-1" flat @click="warningDialog = false; selectedObjectAction = null">
+                        Avrbyt
+                    </v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+        <v-dialog v-model="loadingDialog" persistent max-width="300px">
+            <v-card>
+                <v-card-title class="headline">Loading..</v-card-title>
+                <v-card-text>
+                    <v-layout flex row justify-center align-center style="margin: 10px 0 30px 0">
+                        <v-progress-circular :value="0" indeterminate size="64" width="6"></v-progress-circular>
+                    </v-layout>
+
+                </v-card-text>
+
+            </v-card>
+        </v-dialog>
         <v-dialog v-model="createDialog" max-width="700px">
-            <CreateLocation
+            <CreateObject
                     ref="crudForm"
                     :curCon=currentObject
                     :showBrowser="false"
@@ -20,8 +51,8 @@
         </v-dialog>
         <v-dialog v-model="moveDialog" max-width="700px">
             <v-card>
-                <v-card-title class="headline">Flytta {{movableObj? movableObj.get("name"): ""}}</v-card-title>
-                <BrowseLocation @conChanged="moveConChanged"/>
+                <v-card-title class="headline">Flytta {{selectedObject? selectedObject.get("name"): ""}}</v-card-title>
+                <BrowseContainer ref="browseContainer" @conChanged="moveConChanged"/>
                 <v-layout flex width="100%" row justify-center style="padding-bottom: 16px">
                     <v-btn large @click="moveObj">
                         <v-icon class="mr-2">mdi-arrow-expand-right</v-icon>
@@ -58,7 +89,8 @@
                     <div v-if="currentObject && currentObject.className === 'Thing'">
                         <v-layout flex row reverse style="margin-right: 30px">
                             <v-icon medium color="grey" @click="openCrForm(currentObject, true)">edit</v-icon>
-                            <v-icon medium class="mr-2" color="grey" @click="deleteObject(con)">delete</v-icon>
+                            <v-icon medium class="mr-2" color="grey" @click="setDeletableObj(currentObject)">delete
+                            </v-icon>
                         </v-layout>
                         <v-card style="margin: 10px 30px 30px 30px">
                             <v-card-title>
@@ -87,33 +119,73 @@
                     <div v-else style="height: 100%">
                         <v-spacer class="title font-weight-light">Containers:</v-spacer>
                         <div class="grid-container">
-                            <div v-for="con in containers" :key="con.id" class="grid-item">
+                            <div v-if="containers" v-for="con in containers" :key="con.obj.id" class="grid-item">
                                 <v-card
-                                        color="cyan darken-2"
+                                        :color="selectedObject && selectedObject.id == con.obj.id? 'blue' : 'cyan darken-2'"
                                         class="white--text"
                                         height="100%"
                                         @dblclick="openObject(con)"
+                                        @click="selectObject(con)"
                                         style="position: relative;"
+                                        ripple
                                 >
                                     <v-card-title class="card-title">
-                                        <div>
-                                            <p class="headline" style="margin: 0">{{con.get("name")}}</p>
+                                        <div style="max-width: 100%">
+                                            <v-tooltip bottom open-delay="1000">
+                                                <template v-slot:activator="{ on }">
+                                                    <div class="headline" v-on="on" style="max-width: 100%">
+                                                        <p style="overflow: hidden; text-overflow: ellipsis; margin: 0">
+                                                            {{con.obj.get("name")}}
+                                                        </p>
+                                                    </div>
+                                                </template>
+                                                <span>{{con.obj.get("name")}}</span>
+                                            </v-tooltip>
                                         </div>
-                                        <!-- <div>{{containerAmounts[con.id]? containerAmounts[con.id]["cons"] + " | " + containerAmounts[con.id]["things"]: ""}}</div> -->
+                                        <div>{{con.amounts}}</div>
                                     </v-card-title>
-                                    <v-card-text width="100%">{{con.get("description")}}</v-card-text>
+                                    <v-card-text width="100%">{{con.short_desc}}</v-card-text>
 
                                     <v-card-actions style="position: absolute; bottom: 0; right: 0;">
-                                        <v-icon
-                                                small
-                                                class="mr-2"
-                                                color="white"
-                                                @click="setMovableObj(con)"
-                                        >mdi-folder-move
-                                        </v-icon>
-                                        <v-icon small class="mr-2" color="white" @click="openCrForm(con, false)">edit
-                                        </v-icon>
-                                        <v-icon small color="white" @click="deleteObject(con)">delete</v-icon>
+                                        <v-menu transition="slide-y-transition" bottom>
+                                            <template v-slot:activator="{ on }">
+                                                <v-btn dark icon v-on="on">
+                                                    <v-icon>more_vert</v-icon>
+                                                </v-btn>
+                                            </template>
+                                            <v-list>
+                                                <v-list-tile avatar @click="setMovableObj(con.obj)">
+                                                    <v-list-tile-avatar>
+                                                        <v-icon color="grey">mdi-folder-move</v-icon>
+                                                    </v-list-tile-avatar>
+                                                    <v-list-tile-title>Flytta</v-list-tile-title>
+                                                </v-list-tile>
+                                                <v-list-tile avatar @click="openCrForm(con.obj, false)">
+                                                    <v-list-tile-avatar>
+                                                        <v-icon color="grey">edit</v-icon>
+                                                    </v-list-tile-avatar>
+                                                    <v-list-tile-title>Redigera</v-list-tile-title>
+                                                </v-list-tile>
+                                                <v-list-tile avatar @click="setDuplicateObj(con.obj)">
+                                                    <v-list-tile-avatar>
+                                                        <v-icon color="grey">mdi-content-duplicate</v-icon>
+                                                    </v-list-tile-avatar>
+                                                    <v-list-tile-title>Duplicera</v-list-tile-title>
+                                                </v-list-tile>
+                                                <v-list-tile avatar @click="setConvertObj(con.obj)">
+                                                    <v-list-tile-avatar>
+                                                        <v-icon color="grey">mdi-autorenew</v-icon>
+                                                    </v-list-tile-avatar>
+                                                    <v-list-tile-title>Konvertera till Sak</v-list-tile-title>
+                                                </v-list-tile>
+                                                <v-list-tile avatar @click="setDeletableObj(con.obj)">
+                                                    <v-list-tile-avatar>
+                                                        <v-icon color="grey">delete</v-icon>
+                                                    </v-list-tile-avatar>
+                                                    <v-list-tile-title>Ta Bort</v-list-tile-title>
+                                                </v-list-tile>
+                                            </v-list>
+                                        </v-menu>
                                     </v-card-actions>
                                 </v-card>
                             </div>
@@ -136,16 +208,27 @@
                         <v-layout flex column style="padding: 0 30px 30px 30px">
                             <v-card
                                     v-for="thing in things"
-                                    :key="thing.thing.id"
-                                    color="grey lighten-2"
+                                    :key="thing.obj.id"
+                                    :color="selectedObject && selectedObject.id == thing.obj.id? 'blue' : 'grey lighten-2'"
                                     style="margin-bottom: 20px"
                                     @dblclick="openObject(thing)"
+                                    @click="selectObject(thing)"
+                                    ripple
                             >
                                 <v-layout flex row align-center>
                                     <v-card-title class="card-title" style="width: 100%; padding-bottom: 0">
-                                        <p class="headline" style="margin: 0">{{thing.thing.get("name")}}</p>
+                                        <v-tooltip bottom open-delay="1000">
+                                            <template v-slot:activator="{ on }">
+                                                <div class="headline" v-on="on" style="max-width: 100%">
+                                                    <p style="overflow: hidden; text-overflow: ellipsis; margin: 0">
+                                                        {{thing.obj.get("name")}}
+                                                    </p>
+                                                </div>
+                                            </template>
+                                            <span>{{thing.obj.get("name")}}</span>
+                                        </v-tooltip>
                                     </v-card-title>
-                                    <div style="padding: 0 16px" class="headline">{{thing.thing.get("amount")}}</div>
+                                    <div style="padding: 0 16px" class="headline">{{thing.obj.get("amount")}}</div>
                                 </v-layout>
 
                                 <v-layout flex row align-center style="padding-left: 12px">
@@ -164,26 +247,49 @@
                                 </v-layout>
 
                                 <v-layout flex row>
-                                    <v-card-text style="padding-top: 12px">{{thing.thing.get("description")}}
+                                    <v-card-text style="padding-top: 12px">{{thing.short_desc}}
                                     </v-card-text>
 
                                     <v-card-actions>
-                                        <v-icon
-                                                small
-                                                class="mr-2"
-                                                color="grey darken-1"
-                                                @click="setMovableObj(thing.thing)"
-                                        >mdi-file-move
-                                        </v-icon>
-                                        <v-icon
-                                                small
-                                                class="mr-2"
-                                                color="grey darken-1"
-                                                @click="openCrForm(thing.thing, true)"
-                                        >edit
-                                        </v-icon>
-                                        <v-icon small color="grey darken-1" @click="deleteObject(thing.thing)">delete
-                                        </v-icon>
+                                        <v-menu transition="slide-y-transition" bottom>
+                                            <template v-slot:activator="{ on }">
+                                                <v-btn icon v-on="on">
+                                                    <v-icon>more_vert</v-icon>
+                                                </v-btn>
+                                            </template>
+                                            <v-list>
+                                                <v-list-tile avatar @click="setMovableObj(thing.obj)">
+                                                    <v-list-tile-avatar>
+                                                        <v-icon color="grey">mdi-folder-move</v-icon>
+                                                    </v-list-tile-avatar>
+                                                    <v-list-tile-title>Flytta</v-list-tile-title>
+                                                </v-list-tile>
+                                                <v-list-tile avatar @click="openCrForm(thing.obj, true)">
+                                                    <v-list-tile-avatar>
+                                                        <v-icon color="grey">edit</v-icon>
+                                                    </v-list-tile-avatar>
+                                                    <v-list-tile-title>Redigera</v-list-tile-title>
+                                                </v-list-tile>
+                                                <v-list-tile avatar @click="setDuplicateObj(thing.obj)">
+                                                    <v-list-tile-avatar>
+                                                        <v-icon color="grey">mdi-content-duplicate</v-icon>
+                                                    </v-list-tile-avatar>
+                                                    <v-list-tile-title>Duplicera</v-list-tile-title>
+                                                </v-list-tile>
+                                                <v-list-tile avatar @click="setConvertObj(thing.obj)">
+                                                    <v-list-tile-avatar>
+                                                        <v-icon color="grey">mdi-autorenew</v-icon>
+                                                    </v-list-tile-avatar>
+                                                    <v-list-tile-title>Konvertera till Container</v-list-tile-title>
+                                                </v-list-tile>
+                                                <v-list-tile avatar @click="setDeletableObj(thing.obj)">
+                                                    <v-list-tile-avatar>
+                                                        <v-icon color="grey">delete</v-icon>
+                                                    </v-list-tile-avatar>
+                                                    <v-list-tile-title>Ta Bort</v-list-tile-title>
+                                                </v-list-tile>
+                                            </v-list>
+                                        </v-menu>
                                     </v-card-actions>
                                 </v-layout>
                             </v-card>
@@ -213,34 +319,38 @@
 <script lang="ts">
     import Vue from "vue";
     import Component from "vue-class-component";
-    import {Watch} from "vue-property-decorator";
     import marked from "marked"
     import Parse from "parse";
-    import Location from "@/components/Location.vue";
-    import CreateLocation from "@/components/CreateLocation.vue";
-    import BrowseLocation from "@/components/BrowseLocation.vue";
+    import removeMd from "remove-markdown"
+    import CreateObject from "@/components/CreateObject.vue";
+    import BrowseContainer from "@/components/BrowseContainer.vue";
 
     @Component({
         // @ts-ignore
         components: {
-            Location,
-            CreateLocation,
-            BrowseLocation
+            CreateObject,
+            BrowseContainer
         }
     })
     export default class Browser extends Vue {
         containers: any[] = [];
-        containerAmounts: any = {};
         things: any[] = [];
         currentObject: any = null;
+        selectedObject: any = null;
+        selectedObjectAction: any = null;
+        thingInformation: any = {};
         breadcrumbs: any[] = [];
         createDialog: boolean = false;
         moveDialog: boolean = false;
-        movableObj: any = null;
         containerSelectedToMove: any = null;
         errorMsg: string = "";
         errorDialog: boolean = false;
-        thingInformation: any = {};
+        loadingDialog: boolean = false;
+        warningDialog: boolean = false;
+        warningMsg: string = ""
+        showInfo: boolean = false;
+        infoText: string = "";
+
 
         beforeMount() {
             if (this.$route.params.id) {
@@ -248,11 +358,17 @@
             } else {
                 this.changeContainer(null);
             }
+            this.loadingDialog = true;
         }
 
-        showError(msg: any) {
+        error(msg: any) {
             this.errorMsg = msg.toString();
             this.errorDialog = true;
+        }
+
+        info(msg: any) {
+            this.infoText = msg.toString();
+            this.showInfo = true;
         }
 
         async updateThingInfo() {
@@ -265,22 +381,30 @@
         }
 
         openObject(obj: any) {
+            this.loadingDialog = true;
+
             if (obj) {
-                if (obj.className == "Location") {
-                    this.changeContainer(obj)
+                if (obj.obj.className == "Container") {
+                    this.changeContainer(obj.obj)
                 } else {
-                    this.currentObject = obj.thing;
+                    this.currentObject = obj.obj;
                     this.updateThingInfo();
                     this.getBreadCrumbs()
+                    this.loadingDialog = false;
                 }
             } else {
-                this.changeContainer(obj)
+                this.changeContainer(null)
             }
         }
 
+        selectObject(obj: any) {
+            this.selectedObject = obj.obj;
+        }
+
         changeContainerById(id: string) {
+            this.loadingDialog = true;
             if (id) {
-                const query = new Parse.Query("Location");
+                const query = new Parse.Query("Container");
                 query.equalTo("objectId", id);
                 query
                     .first()
@@ -295,68 +419,49 @@
             }
         }
 
-        changeContainer(container: any) {
+        async changeContainer(container: any) {
+            if (this.currentObject != container) {
+                this.selectedObject = null;
+            }
+
             this.currentObject = container;
             let query = null;
+            if (container) {
+                this.$router.replace("/browser/" + container.id);
+            } else {
+                this.$router.replace("/browser");
+            }
             if (this.currentObject === undefined || this.currentObject === null) {
-                const nullQuery = new Parse.Query("Location");
+                const nullQuery = new Parse.Query("Container");
                 nullQuery.equalTo("parent", null);
 
-                const undefinedQuery = new Parse.Query("Location");
+                const undefinedQuery = new Parse.Query("Container");
                 undefinedQuery.equalTo("parent", undefined);
 
                 query = Parse.Query.or(nullQuery, undefinedQuery);
             } else {
-                query = new Parse.Query("Location");
+                query = new Parse.Query("Container");
                 query.equalTo("parent", this.currentObject);
             }
 
-            query.find().then((results: any[]) => {
-                this.containers = results;
-                if (container) {
-                    this.$router.replace("/browser/" + container.id);
-                } else {
-                    this.$router.replace("/browser");
+            let results = await query.find()
+
+            if (results) {
+                this.containers = []
+
+                for (let con of results) {
+                    let parsedContainer = await this.$store.dispatch("parseContainer", con)
+                    this.containers.push(parsedContainer)
                 }
-
-                this.getBreadCrumbs();
-                this.updateThingsArray();
-                this.updateContainerAmounts();
-            }).catch(err => {
-                this.showError(err)
-            });
-        }
-
-        updateContainerAmounts() {
-            for (let container of this.containers) {
-                const query = new Parse.Query("Location");
-                this.containerAmounts[container.id] = {};
-                query.equalTo("parent", container);
-                query
-                    .count()
-                    .then(result => {
-                        this.containerAmounts[container.id]["cons"] = result;
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        this.containerAmounts[container.id]["cons"] = 0;
-                    });
-                const thingsQuery = new Parse.Query("Thing");
-                thingsQuery.equalTo("parent", container);
-                thingsQuery
-                    .count()
-                    .then(result => {
-                        if (result) {
-                            this.containerAmounts[container.id]["things"] = result;
-                        } else {
-                            this.containerAmounts[container.id]["things"] = 0;
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        this.containerAmounts[container.id]["things"] = 0;
-                    });
+            } else {
+                this.containers = []
             }
+
+            this.loadingDialog = false;
+
+            this.getBreadCrumbs();
+            this.updateThingsArray();
+            //this.updateContainerAmounts();
         }
 
         async updateThingsArray() {
@@ -379,7 +484,7 @@
             const things = await query.find();
             if (things) {
                 for (let i = 0; i < things.length; i++) {
-                    this.things.push({thing: things[i], tags: []});
+                    this.things.push({obj: things[i], tags: [], short_desc: removeMd(things[i].get("description"))});
                     things[i]
                         .get("tags")
                         .query()
@@ -392,16 +497,19 @@
                         });
                 }
             }
+            this.loadingDialog = false;
         }
 
         public openCrForm(obj: any, tol: boolean) {
-            const form = <CreateLocation>this.$refs.crudForm;
+            const form = <CreateObject>this.$refs.crudForm;
             form.setFormData(obj, tol);
             this.createDialog = true;
         }
 
         setMovableObj(obj: any) {
-            this.movableObj = obj;
+            this.selectedObject = obj;
+            const form = <BrowseContainer>this.$refs.browseContainer;
+            form.changeContainer(this.currentObject);
             this.moveDialog = true;
         }
 
@@ -409,77 +517,215 @@
             this.containerSelectedToMove = con;
         }
 
-        moveObj() {
-            if (this.movableObj) {
-                this.movableObj.set("parent", this.containerSelectedToMove);
-                this.movableObj
+        async moveObj() {
+            if (this.selectedObject) {
+                if (this.containerSelectedToMove && this.selectedObject.id == this.containerSelectedToMove.id) {
+                    this.error("Du kan inte flytta en container till sig själv!")
+                    return
+                }
+
+                this.loadingDialog = true;
+                let parent = this.containerSelectedToMove;
+                let parents = [];
+                while (parent != null && parent != undefined) {
+                    parents.push(parent);
+                    parent = parent.get("parent");
+                }
+                for (let p of parents) {
+                    if (p.id == this.selectedObject.id) {
+                        this.loadingDialog = false;
+                        this.error("Du kan inte flytta en container till en under-container.")
+                        return
+                    }
+                }
+
+                this.selectedObject.set("parent", this.containerSelectedToMove);
+                this.selectedObject
                     .save()
                     .then(() => {
                         this.changeContainer(this.currentObject);
                         this.moveDialog = false;
-                        this.movableObj = null;
+                        this.info("Flyttade " + this.selectedObject.get("name") + " till " + this.containerSelectedToMove.get("name"))
+
                     })
                     .catch((err: any) => {
-                        this.showError("Kunde inte flytta " + this.movableObj.get("name") + " till " + this.containerSelectedToMove.get("name") + ". \nTesta igen senare.")
+                        this.error("Kunde inte flytta " + this.selectedObject.get("name") + " till " + this.containerSelectedToMove.get("name") + ". \nTesta igen senare.")
                         console.error(err);
-                        this.movableObj = null;
+                    })
+                    .finally(() => {
+                        this.selectedObjectAction = null;
                     });
             }
         }
 
-        async deleteObject(obj: any) {
-            if (obj.className == "Location") {
-                const conQuery = new Parse.Query("Location");
-                conQuery.equalTo("parent", obj);
-                const thingQuery = new Parse.Query("Thing");
-                thingQuery.equalTo("parent", obj);
-                let children: any[] = [...(await conQuery.find()), ...(await thingQuery.find())];
+        setConvertObj(obj: any) {
+            this.selectedObject = obj;
+            this.warningDialog = true;
+            this.selectedObjectAction = this.convertObject
+            this.warningMsg = "Vill du konvertera '" + obj.get("name") + "' till en " +
+                (obj.className == "Thing"? "Container?" : "Sak?")
+        }
 
-                let childrenSaved: number = 0;
+        async convertObject() {
+            if (this.selectedObject) {
+                let convertedClassName: string;
 
-                if (children.length > 0) {
-                    for (let child of children) {
-                        child.set("parent", this.currentObject);
-                        let result = await child.save();
-                        if (result) {
-                            childrenSaved++;
-                        }
-                    }
-                }
-
-                if (childrenSaved == children.length) {
-                    obj.destroy().then(
-                        (response: any) => {
-                            console.log("Deleted Thing", response);
-                            this.changeContainer(this.currentObject);
-                        },
-                        (error: any) => {
-                            console.error("Error while deleting Thing", error);
-                        }
-                    );
+                if (this.selectedObject.className == "Thing") {
+                    convertedClassName = "Container"
                 } else {
-                    this.showError("Fel uppstod när underobject skulle flyttas.")
+                    convertedClassName = "Thing"
                 }
-            } else {
-                obj.destroy().then(
-                    (response: any) => {
-                        console.log("Deleted Thing", response);
-                        this.things.splice(this.things.findIndex(x => x.thing == obj), 1);
-                    },
-                    (error: any) => {
-                        console.error("Error while deleting Thing", error);
-                    }
-                );
+                const ParseObject = Parse.Object.extend(convertedClassName);
+                const newObject = new ParseObject()
+
+                newObject.set("name", this.selectedObject.get("name"));
+                newObject.set("description", this.selectedObject.get("description"));
+                newObject.set("parent", this.selectedObject.get("parent"))
+
+                let result = await newObject.save()
+                if (result) {
+                    this.deleteObject(false).then(async () => {
+                        if (convertedClassName == "Container") {
+                            this.info("Konverterade '" + this.selectedObject.get("name") + "' till en Container")
+                            this.updOrCrEvent(await this.$store.dispatch("parseContainer", result), false)
+                        } else {
+                            this.info("Konverterade '" + this.selectedObject.get("name") + "' till en Sak")
+                            this.updOrCrEvent(await this.$store.dispatch("parseThing", result), false)
+                        }
+                    }).catch((err: any) => {
+                        this.error("Fel uppstod vi konvertering")
+                        console.error(err)
+                    }).finally(() => {
+                        this.selectedObjectAction = null;
+                    })
+                }
             }
         }
 
-        public goToParent() {
+        setDuplicateObj(obj: any) {
+            this.selectedObject = obj;
+            this.warningDialog = true;
+            this.selectedObjectAction = this.duplicateObj
+            this.warningMsg = "Vill du duplicera '" + obj.get("name") + "'?"
+        }
+
+        async duplicateObj() {
+            this.warningDialog = false;
+            const ParseObject = Parse.Object.extend(this.selectedObject.className);
+            const clone = new ParseObject();
+            if (this.selectedObject) {
+                clone.set("name", this.selectedObject.get("name"));
+                clone.set("description", this.selectedObject.get("description"));
+                clone.set("parent", this.selectedObject.get("parent"))
+
+                if (clone.className == "Thing") {
+                    clone.set("amount", this.selectedObject.get("amount"));
+                    let tagRelation = clone.relation("tags");
+                    const relationQuery = tagRelation.query();
+                    let result = await relationQuery.find();
+                    if (result && result.length > 0) {
+                        tagRelation.add(result);
+                    }
+
+                } else if (clone.className == "Container") {
+                    clone.set("type", this.selectedObject.get("type"));
+                }
+
+                clone.save().then(async (result: any) => {
+                    this.info("Duplicerade " + this.selectedObject.get("name"))
+                    if (result.className == "Container") {
+                        this.updOrCrEvent(await this.$store.dispatch("parseContainer", result))
+                    } else {
+                        this.updOrCrEvent(await this.$store.dispatch("parseThing", result))
+                    }
+                }).catch((err: any) => {
+                    console.error(err)
+                }).finally(() => {
+                    this.selectedObjectAction = null;
+                })
+            }
+        }
+
+        setDeletableObj(obj: any) {
+            this.warningDialog = true;
+            this.selectedObject = obj;
+            this.selectedObjectAction = this.deleteObject;
+            this.warningMsg = "Vill du verkligen ta bort '" + obj.get("name") + "'?"
+        }
+
+        deleteObject(shouldInform = true) {
+            return new Promise(async (resolve, reject) => {
+                this.warningDialog = false;
+                this.loadingDialog = true;
+                if (this.selectedObject.className == "Container") {
+                    const conQuery = new Parse.Query("Container");
+                    conQuery.equalTo("parent", this.selectedObject);
+                    const thingQuery = new Parse.Query("Thing");
+                    thingQuery.equalTo("parent", this.selectedObject);
+                    let children: any[] = [...(await conQuery.find()), ...(await thingQuery.find())];
+
+                    let childrenSaved: number = 0;
+
+                    if (children.length > 0) {
+                        for (let child of children) {
+                            child.set("parent", this.selectedObject.get("parent"));
+                            let result = await child.save();
+                            if (result) {
+                                childrenSaved++;
+                            }
+                        }
+                    }
+
+                    if (childrenSaved == children.length) {
+                        let result = this.selectedObject.destroy();
+                        if (result) {
+                            if (shouldInform) {
+                                this.info("Tog bort " + this.selectedObject.get("name"))
+                            }
+                            this.changeContainer(this.currentObject);
+                            resolve(result)
+                        } else {
+                            this.error("Error när en sak skulle tas bort!")
+                            console.error("Error while deleting Thing", result);
+                            reject(result)
+                        }
+
+                        this.selectedObjectAction = null;
+                        this.loadingDialog = false
+                    } else {
+                        this.error("Fel uppstod när underobject skulle flyttas.")
+                        reject(null)
+                    }
+                } else if (this.selectedObject.className == "Thing") {
+                    let result = this.selectedObject.destroy();
+                    if (result) {
+                        if (shouldInform) {
+                            this.info("Tog bort " + this.selectedObject.get("name"))
+                        }
+                        if (this.currentObject && this.currentObject.id == this.selectedObject.id) {
+                            this.goToParent()
+                        } else {
+                            this.things.splice(this.things.findIndex(x => x.obj.id == this.selectedObject.id), 1);
+                        }
+                        resolve(result)
+                    } else {
+                        console.error("Error while deleting Thing", result);
+                        reject(result)
+                    }
+                    this.selectedObjectAction = null;
+                    this.loadingDialog = false
+                }
+            })
+        }
+
+        goToParent() {
             if (this.currentObject) {
+                this.loadingDialog = true
                 this.changeContainer(this.currentObject.get("parent"));
             }
         }
 
-        public getBreadCrumbs() {
+        getBreadCrumbs() {
             if (this.currentObject) {
                 let parent = this.currentObject;
                 let crumbs = [];
@@ -508,32 +754,50 @@
             }
         }
 
-        public updOrCrEvent(obj: any) {
+        public updOrCrEvent(obj: any, shouldInform = true) {
             if (obj) {
-                if (obj.thing) {
-                    if (this.currentObject.id === obj.thing.id) {
-                        this.currentObject = obj.thing
+                console.log(obj)
+                if (obj.obj.className == "Thing") {
+                    if (this.currentObject && this.currentObject.id === obj.obj.id) {
+                        this.currentObject = obj.obj
                         this.updateThingInfo()
                     } else {
                         const foundIndex = this.things.findIndex(
-                            x => x.thing.id == obj.thing.id
+                            x => x.obj.id == obj.obj.id
                         );
                         if (foundIndex >= 0) {
                             this.things[foundIndex] = obj;
+                            if (shouldInform) {
+                                this.info("Uppdaterade " + obj.obj.get("name"))
+                            }
                         } else {
                             this.things.push(obj);
+                            if (shouldInform) {
+                                this.info("Skapade en ny sak!")
+                            }
                         }
                     }
-                } else if (obj.className == "Location") {
-                    const foundIndex = this.containers.findIndex(x => x.id == obj.id);
+
+                } else if (obj.obj.className == "Container") {
+                    const foundIndex = this.containers.findIndex(
+                        x => x.obj.id == obj.obj.id
+                    );
                     if (foundIndex >= 0) {
                         this.containers[foundIndex] = obj;
+                        if (shouldInform) {
+                            this.info("Uppdaterade " + obj.obj.get("name"))
+                        }
                     } else {
                         this.containers.push(obj);
+                        if (shouldInform) {
+                            this.info("Skapade ny container!")
+                        }
                     }
                 }
 
                 this.createDialog = false;
+            } else {
+                this.error("Fel uppstod! Kunde inte skapa eller uppdatera objekt. Information har kanske inte sparats.")
             }
         }
     }
@@ -574,7 +838,6 @@
         width: 100%;
         display: grid;
         padding: 0 30px 30px 30px;
-        grid-auto-flow: column;
         grid-template-columns: repeat(auto-fill, 250px);
         grid-auto-rows: 200px;
         grid-gap: 28px;
