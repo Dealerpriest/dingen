@@ -7,13 +7,18 @@
                         <v-icon>search</v-icon>
                         <v-toolbar-title>Sök</v-toolbar-title>
                     </v-toolbar>
+
+                    <div style="text-align: center; margin-top: 40px">
+                        <h3>WIP (En så länge en väldigt enkel sökning. Mer funktioner tillkommer!)</h3>
+                    </div>
+
                     <v-card style="margin: 30px; padding: 16px">
-                        <v-text-field label="Sök" append-icon="search" v-model="searchPhrase"></v-text-field>
+                        <v-text-field label="Sök" append-icon="search" v-model="searchQuery" @input="isTyping = true"></v-text-field>
                     </v-card>
 
                     <v-layout flex column style="padding: 0 30px 30px 30px">
                         <v-card
-                                v-for="obj in computedObjects"
+                                v-for="obj in objects"
                                 :key="obj.id"
                                 color="grey lighten-2"
                                 style="margin-bottom: 20px"
@@ -51,11 +56,29 @@
         props: {}
     })
     export default class Search extends Vue {
-        isLoading: boolean = false;
-        objects: any[] = [];
-        searchPhrase: string = "";
+        isLoading: boolean = false
+        objects: any[] = []
+        searchQuery: string = ""
+        isTyping: boolean = false
+        timeoutId: any = null
+
+        @Watch("searchQuery")
+        computeTyping() {
+            clearTimeout(this.timeoutId)
+            this.timeoutId = setTimeout(() => {
+                this.isTyping = false;
+            }, 500)
+        }
+
+        @Watch("isTyping")
+        computeIsTyping(val: string) {
+            if (!val) {
+                this.searchObjects()
+            }
+        }
 
         mounted() {
+            /*
             const conQuery = new Parse.Query("Container");
             conQuery
                 .find()
@@ -88,7 +111,7 @@
                 })
                 .finally(() => {
                     this.isLoading = false;
-                });
+                });*/
         }
 
         getObjectIcon(obj: any) {
@@ -102,17 +125,16 @@
             }
         }
 
-        get computedObjects() {
-            if (this.searchPhrase.length > 0) {
-                const searchLowered = this.searchPhrase.toLowerCase();
-                return this.objects.filter(object => {
-                    return object
-                        .get("name")
-                        .toLowerCase()
-                        .includes(searchLowered);
-                });
+        async searchObjects() {
+            if (this.searchQuery.length > 0) {
+                const conQuery = new Parse.Query("Container");
+                let regex = new RegExp('[A-ö]*' + this.searchQuery + '[A-ö]*', "gi")
+                conQuery.matches("name", regex, "")
+                const results = await conQuery.find()
+                console.log(results.length)
+                this.objects = results
             } else {
-                return [];
+                this.objects = [];
             }
         }
 

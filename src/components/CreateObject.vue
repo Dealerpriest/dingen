@@ -16,15 +16,15 @@
                 <span class="title font-weight-light">{{formTitle}}</span>
             </v-card-title>
             <v-card-text>
-                <v-form @keydown.ctrl.enter="updateOrCreate">
+                <v-form @keydown.ctrl.enter="$refs.form.validate()? updateOrCreate(): false" ref="form"
+                        lazy-validation>
                     <v-container column fluid grow>
                         <v-layout height="100%">
                             <v-flex md12 fill-height>
-                                <v-text-field solo v-model="name" ref="nameInput" :counter="60" label="Namn" required>
-
-                                </v-text-field>
+                                <v-text-field solo v-model="name" ref="nameInput" label="Namn" required
+                                              :rules="[v => !!v || 'Ett namn är nödvändigt!']"></v-text-field>
                                 <v-textarea solo name="input" label="Beskrivning" v-model="description"
-                                            @keydown.ctrl.enter="updateOrCreate"></v-textarea>
+                                            @keydown.ctrl.enter="$refs.form.validate()? updateOrCreate(): false"></v-textarea>
                                 <v-card raised style="height: 150px; overflow: auto; margin-bottom: 30px">
                                     <v-card-text v-html="getMarkedDesc"></v-card-text>
                                 </v-card>
@@ -32,14 +32,12 @@
                                         v-if="thingOrContainer"
                                         solo
                                         v-model="amount"
-                                        :counter="10"
                                         label="Antal"
                                 ></v-text-field>
                                 <v-text-field
                                         v-if="!thingOrContainer"
                                         solo
                                         v-model="type"
-                                        :counter="10"
                                         label="Typ"
                                 ></v-text-field>
                                 <v-combobox
@@ -86,7 +84,7 @@
                             <v-btn
                                     large
                                     color="normal"
-                                    @click="updateOrCreate"
+                                    @click="$refs.form.validate()? updateOrCreate(): false"
                             >{{this.updatableObj? "spara" : "Skapa"}}
                             </v-btn>
                         </v-layout>
@@ -143,8 +141,8 @@
         }
 
         get getMarkedDesc() {
-            return this.description && this.description.length > 0?
-                marked(this.description, {sanitize: true}): "Förhandvisning för beskrivningen.."
+            return this.description && this.description.length > 0 ?
+                marked(this.description, {sanitize: true}) : "Förhandvisning för beskrivningen.."
         }
 
         @Watch("curCon")

@@ -5,7 +5,7 @@ import store from './store';
 import '@mdi/font/css/materialdesignicons.css'
 import './registerServiceWorker';
 import Vuetify from "vuetify";
-import 'vuetify/dist/vuetify.min.css'
+import 'vuetify/dist/vuetify.min.css';
 
 Vue.use(Vuetify, {
   iconfont: 'mdi'
@@ -13,11 +13,8 @@ Vue.use(Vuetify, {
 
 import Parse from 'parse';
 
-Parse.serverURL = 'http://192.168.1.14:1337/parse'; // This is your Server URL
-Parse.initialize(
-  'dingelingen', // This is your Application ID
-);
-
+Parse.serverURL = "https://storage.tiigbg.se:4444/parse";
+Parse.initialize('dingelingen');
 
 Vue.config.productionTip = false;
 
