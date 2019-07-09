@@ -11,7 +11,7 @@ export default {
         }
     },
     actions: {
-        fetchAllLocations(store: any, callback: Function) {
+        fetchAllLocations(store: any) {
             return new Promise(function (resolve, reject) {
                 if (store.state.locations.length <= 0) {
                     const query = new Parse.Query("Container");
@@ -52,6 +52,37 @@ export default {
                     tags = await thing.get("tags").query().find()
                 }
                 resolve({obj: thing, tags: tags, short_desc: removeMd(thing.get("description")), isSelected: false});
+            })
+        },
+
+        getBreadCrumbs(store: any, obj: any) {
+            return new Promise((resolve, reject) => {
+                if (obj) {
+                    let parent = obj;
+                    let crumbs = [];
+                    while (parent != null) {
+                        crumbs.push({
+                            text: parent.get("name"),
+                            disabled: false,
+                            id: parent.id
+                        });
+                        parent = parent.get("parent");
+                    }
+                    crumbs.push({
+                        text: "Start",
+                        disabled: false,
+                        id: ""
+                    });
+                    resolve(crumbs.reverse())
+                } else {
+                    resolve([
+                        {
+                            text: "Start",
+                            disabled: true,
+                            id: ""
+                        }
+                    ])
+                }
             })
         },
 

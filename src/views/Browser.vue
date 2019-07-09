@@ -134,7 +134,7 @@
                             <template v-slot:item="props">
                                 <a
                                         v-if="!props.item.disabled"
-                                        @click="changeContainerById(props.item.id)"
+                                        @click="openObjectById(props.item.id)"
                                 >{{ props.item.text }}</a>
                                 <p v-else>{{ props.item.text }}</p>
                             </template>
@@ -180,7 +180,8 @@
                         </v-card>
                     </div>
                     <div v-else style="height: 100%">
-                        <v-layout flex row align-center style="width: 100%; padding: 0 30px 20px 30px; justify-content: space-between;">
+                        <v-layout flex row align-center
+                                  style="width: 100%; padding: 0 30px 20px 30px; justify-content: space-between;">
                             <p class="title font-weight-light" style="margin: 0">Containers:</p>
                             <v-btn-toggle v-model="containerView" mandatory>
                                 <v-tooltip bottom open-delay="1000">
@@ -215,7 +216,8 @@
                                 @selectObj="selectObject"
                                 @ctrlSelectObj="ctrlSelectObject"
                         ></ObjectView>
-                        <v-layout flex row align-center style="width: 100%; padding: 0 30px 20px 30px; justify-content: space-between;">
+                        <v-layout flex row align-center
+                                  style="width: 100%; padding: 0 30px 20px 30px; justify-content: space-between;">
                             <p class="title font-weight-light" style="margin: 0">Saker:</p>
                             <v-btn-toggle v-model="thingsView" mandatory>
                                 <v-tooltip bottom open-delay="1000">
@@ -302,11 +304,11 @@
 
         beforeMount() {
             if (this.$route.params.id) {
-                this.changeContainerById(this.$route.params.id);
+                this.openObjectById(this.$route.params.id);
             } else {
+                this.loadingDialog = true;
                 this.changeContainer(null);
             }
-            this.loadingDialog = true;
         }
 
         error(msg: any) {
@@ -328,6 +330,24 @@
             }
         }
 
+        async openObjectById(id: string) {
+            this.loadingDialog = true;
+            if (id) {
+                const query = new Parse.Query("Container");
+                query.equalTo("objectId", id);
+                let result = await query.first()
+                if (!result) {
+                    const thingQuery = new Parse.Query("Thing");
+                    thingQuery.equalTo("objectId", id);
+                    result = await thingQuery.first()
+                }
+
+                this.openObject({obj: result})
+            } else {
+                this.changeContainer(null);
+            }
+        }
+
         openObject(obj: any) {
             this.loadingDialog = true;
 
@@ -336,8 +356,11 @@
                     this.changeContainer(obj.obj)
                 } else {
                     this.currentObject = obj.obj;
+                    this.$router.replace("/browser/" + obj.obj.id);
                     this.updateThingInfo();
-                    this.getBreadCrumbs()
+                    this.$store.dispatch("getBreadCrumbs", this.currentObject).then((result: any) => {
+                        this.breadcrumbs = result
+                    })
                     this.loadingDialog = false;
                 }
             } else {
@@ -399,24 +422,6 @@
             return this.selectedObjects.length > 1
         }
 
-        changeContainerById(id: string) {
-            this.loadingDialog = true;
-            if (id) {
-                const query = new Parse.Query("Container");
-                query.equalTo("objectId", id);
-                query
-                    .first()
-                    .then((result: any) => {
-                        this.changeContainer(result);
-                    })
-                    .catch(() => {
-                        this.changeContainer(null);
-                    });
-            } else {
-                this.changeContainer(null);
-            }
-        }
-
         async changeContainer(container: any) {
             if (this.currentObject != container) {
                 this.selectObject(null);
@@ -455,40 +460,13 @@
                 }
             }
 
-            Promise.all([loadContainers(), this.getBreadCrumbs(), this.updateThingsArray()]).finally(() => {
-                this.loadingDialog = false
-            })
-        }
-
-        async getBreadCrumbs() {
-            if (this.currentObject) {
-                let parent = this.currentObject;
-                let crumbs = [];
-                while (parent != null) {
-                    crumbs.push({
-                        text: parent.get("name"),
-                        disabled: parent.className == "Thing",
-                        id: parent.id
-                    });
-                    parent = parent.get("parent");
-                }
-                crumbs.push({
-                    text: "Start",
-                    disabled: false,
-                    id: ""
-                });
-                this.breadcrumbs = crumbs.reverse();
-            } else {
-                this.breadcrumbs = [
-                    {
-                        text: "Start",
-                        disabled: true,
-                        id: ""
-                    }
-                ];
-            }
-
-            return this.breadcrumbs
+            Promise.all([loadContainers(), this.$store.dispatch("getBreadCrumbs", this.currentObject), this.updateThingsArray()])
+                .then((results: any[]) => {
+                    this.breadcrumbs = results[1]
+                })
+                .finally(() => {
+                    this.loadingDialog = false
+                })
         }
 
         async updateThingsArray() {

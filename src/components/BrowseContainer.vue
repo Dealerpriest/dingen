@@ -28,6 +28,7 @@
                         type="text"
                         single-line
                         width="100%"
+                        @input="isTyping = true"
                 ></v-text-field>
             </v-flex>
             <div class="breadcrumb">
@@ -105,9 +106,12 @@
         editDialog: boolean = true;
         breadcrumbs: any[] = [];
 
+        timeoutId: any = null;
+        isTyping: boolean = false;
+
         @Prop() editable!: boolean;
 
-        @Watch("containerSearch")
+        /*@Watch("containerSearch")
         conSearch(val: string) {
             if (val && val.length > 0) {
                 this.containers = this.$store.state.db.locations.filter((x: any) => {
@@ -121,14 +125,36 @@
                     return x.get("parent") == null;
                 });
             }
+        }*/
+
+        @Watch("containerSearch")
+        computeTyping() {
+            clearTimeout(this.timeoutId)
+            this.timeoutId = setTimeout(() => {
+                this.isTyping = false;
+            }, 700)
+        }
+
+        @Watch("isTyping")
+        computeIsTyping(val: boolean) {
+            if (!val) {
+                this.searchObjects()
+            }
+        }
+
+        async searchObjects() {
+            const conQuery = new Parse.Query("Container");
+            if (this.containerSearch && this.containerSearch.length > 0) {
+                let regex = new RegExp('[A-ö]*' + this.containerSearch + '[A-ö]*', "gi")
+                conQuery.matches("name", regex, "")
+            } else {
+                conQuery.equalTo("parent", null)
+            }
+            this.containers  = await conQuery.find()
         }
 
         beforeMount() {
-            this.$store.dispatch("fetchAllLocations").then(locations => {
-                this.containers = locations.filter((x: any) => {
-                    return x.get("parent") == null;
-                });
-            });
+            this.searchObjects()
         }
 
         goToParent() {
@@ -180,37 +206,8 @@
 
             query.find().then((results: any[]) => {
                 this.containers = results;
-                this.getBreadCrumbs();
+                this.$store.dispatch("getBreadCrumbs", this.currentContainer)
             });
-        }
-
-        public getBreadCrumbs() {
-            if (this.currentContainer) {
-                let parent = this.currentContainer;
-                let crumbs = [];
-                while (parent != null && parent != undefined) {
-                    crumbs.push({
-                        text: parent.get("name"),
-                        disabled: parent.className == "Thing",
-                        id: parent.id
-                    });
-                    parent = parent.get("parent");
-                }
-                crumbs.push({
-                    text: "Start",
-                    disabled: false,
-                    id: ""
-                });
-                this.breadcrumbs = crumbs.reverse();
-            } else {
-                this.breadcrumbs = [
-                    {
-                        text: "Start",
-                        disabled: false,
-                        id: ""
-                    }
-                ];
-            }
         }
     }
 </script>

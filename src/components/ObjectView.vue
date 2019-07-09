@@ -26,14 +26,28 @@
                                         </p>
                                     </div>
                                 </div>
-                                <v-tooltip v-if="!toc" bottom open-delay="1000">
-                                    <template v-slot:activator="{ on }">
-                                        <div v-on="on">
-                                            {{obj.amounts.con}} | {{obj.amounts.things}}
-                                        </div>
-                                    </template>
-                                    <span>Innehåller {{obj.amounts.con}} contianrar och {{obj.amounts.things}} saker</span>
-                                </v-tooltip>
+                                <template v-if="!toc">
+                                    <v-layout flex row justify-center>
+                                        <v-tooltip v-if="obj.obj.get('type')"  bottom open-delay="1000">
+                                            <template v-slot:activator="{ on }">
+                                                <div v-on="on" class="mr-3" style="max-width: 70%">
+                                                    <p style="overflow: hidden; text-overflow: ellipsis; margin: 0; white-space: nowrap">
+                                                        {{obj.obj.get("type")}}
+                                                    </p>
+                                                </div>
+                                            </template>
+                                            <span>Typ: {{obj.obj.get("type")}}</span>
+                                        </v-tooltip>
+                                        <v-tooltip  bottom open-delay="1000">
+                                            <template v-slot:activator="{ on }">
+                                                <div v-on="on">
+                                                    {{obj.amounts.con}} | {{obj.amounts.things}}
+                                                </div>
+                                            </template>
+                                            <span>Innehåller {{obj.amounts.con}} contianrar och {{obj.amounts.things}} saker</span>
+                                        </v-tooltip>
+                                    </v-layout>
+                                </template>
                                 <div v-else>
                                     {{obj.obj.get("amount")}}
                                 </div>
@@ -125,23 +139,38 @@
                                         </p>
                                     </div>
                                 </v-card-title>
-                                <v-tooltip v-if="!toc" bottom open-delay="1000">
-                                    <template v-slot:activator="{ on }">
-                                        <div v-on="on" style="width: 20%; margin: 16px 16px 0 0; white-space: nowrap"
-                                             class="d-headline font-weight-light">
-                                            <p style="overflow: hidden; text-overflow: ellipsis; margin: 0; text-align: right">
-                                                {{obj.amounts.con}} | {{obj.amounts.things}}
-                                            </p>
-                                        </div>
-                                    </template>
-                                    <span>Innehåller {{obj.amounts.con}} contianrar och {{obj.amounts.things}} saker</span>
-                                </v-tooltip>
+                                <template v-if="!toc">
+                                    <v-layout flex column style="align-items: flex-end; width: 20%">
+                                        <v-tooltip v-if="!toc" bottom open-delay="1000">
+                                            <template v-slot:activator="{ on }">
+                                                <div v-on="on" style="margin: 16px 16px 0 0; white-space: nowrap"
+                                                     class="d-headline font-weight-light">
+                                                    <p style="overflow: hidden; text-overflow: ellipsis; margin: 0;">
+                                                        {{obj.amounts.con}} | {{obj.amounts.things}}
+                                                    </p>
+                                                </div>
+                                            </template>
+                                            <span>Innehåller {{obj.amounts.con}} contianrar och {{obj.amounts.things}} saker</span>
+                                        </v-tooltip>
+                                        <v-tooltip v-if="obj.obj.get('type')"  bottom open-delay="1000">
+                                            <template v-slot:activator="{ on }">
+                                                <div v-on="on" style="max-width: 20%; margin-right: 16px">
+                                                    <p style="overflow: hidden; text-overflow: ellipsis; margin: 0; white-space: nowrap">
+                                                        {{obj.obj.get("type")}}
+                                                    </p>
+                                                </div>
+                                            </template>
+                                            <span>Typ: {{obj.obj.get("type")}}</span>
+                                        </v-tooltip>
+                                    </v-layout>
+                                </template>
                                 <div v-else style="width: 20%; margin: 16px 16px 0 0; white-space: nowrap"
                                      class="d-headline font-weight-light">
                                     <p style="overflow: hidden; text-overflow: ellipsis; margin: 0; text-align: right">
                                         {{obj.obj.get("amount")}}
                                     </p>
                                 </div>
+
                             </v-layout>
 
                             <v-layout v-if="toc" flex row align-center style="padding-left: 12px">
