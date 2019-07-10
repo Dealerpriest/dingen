@@ -200,6 +200,7 @@
         }
 
         async searchObjects() {
+            //@ts-ignore
             if (this.searchQuery.length > 0 && this.$refs.form.validate()) {
                 this.isLoading = true
 
@@ -213,7 +214,7 @@
                 }
 
                 const results = (await Promise.all(this.selectedObjectTypes.map(x => addQuerry(x.value)))).flat()
-                
+
                 this.objects = await Promise.all(results.map(x => {
                     if (x.className == "Container") {
                         return new Promise(async (resolve, reject) => {

@@ -4,6 +4,7 @@ import './register-hooks'
 
 import Browser from './views/Browser.vue';
 import Search from './views/Search.vue';
+import Tags from './views/Tags.vue';
 
 
 
@@ -21,6 +22,11 @@ export default new Router({
       path: '/browser',
       name: 'browser',
       component: Browser,
+    },
+    {
+      path: '/tags',
+      name: 'tags',
+      component: Tags,
     },
     {
       path: '/browser/:id',
