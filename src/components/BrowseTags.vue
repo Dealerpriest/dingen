@@ -16,7 +16,7 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-card max-width="1000">
+    <v-card>
       <v-sheet class="pa-3 primary lighten-1">
         <v-layout flex row align-center>
           <v-icon color="white" class="mr-3">tag</v-icon>
@@ -24,7 +24,7 @@
           <v-spacer></v-spacer>
           <v-tooltip bottom open-delay="1000">
             <template v-slot:activator="{ on }">
-              <v-btn v-on="on" icon @click="activeSelected = []">
+              <v-btn v-on="on" icon @click="activeSelectedSet([])">
                 <v-icon color="white">mdi-selection-off</v-icon>
               </v-btn>
             </template>
@@ -67,12 +67,14 @@
       <v-card-text>
         <v-treeview
           :items="tagTree"
-          :search="search"
-          :filter="filter"
           :open="opened"
-          :active.sync="activeSelected"
+          :search="search"
+          :filter="filterRoots"
+          :active="activeSelected"
+          @update:active="activeSelectedSet"
+          @input="onSelect"
           activatable
-          return-object
+          selectable
           active-class="grey lighten-2"
           selected-color="indigo"
           :multiple-active="multiple"
@@ -170,7 +172,7 @@ export default class BrowseTags extends Vue {
   search: string = "";
   tagTree: any[] = [];
   // open: any[] = [];
-  tags: any[] = [];
+  tags: any = null;
   isEditing: string = "";
   isDeleting: any = null;
   newName: string = "";
@@ -201,71 +203,137 @@ export default class BrowseTags extends Vue {
       }
     });
     if (anyMatch) {
-      matchArray.push(item);
+      matchArray.push(item.id);
     }
     return anyMatch;
   }
 
-  foundParent: Object = {};
   getParentOf(child: any) {
-    this.foundParent = {};
+    let foundParent: any = [null]; // hack to make sure the foundParent is passed around as reference (by using an array). Couldn't make it work with object for some F*CKED up reason!
     this.tagTree.forEach((candidate: any) => {
-      this.checkCandidateAgainstChildren(candidate, child, this.foundParent);
+      this.checkCandidateAgainstChildren(candidate, child, foundParent);
     });
-    return this.foundParent;
+    return foundParent[0];
   }
 
   checkCandidateAgainstChildren(candidate: any, item: any, parent: any) {
-    if (this.isParentTo(candidate, item)) {
-      parent = candidate;
-    } else if (candidate.children) {
-      candidate.children.forEach((child: any) => {
-        this.checkCandidateAgainstChildren(child, item, parent);
-      });
+    // console.log("foundParent is currently: ");
+    // console.log(parent);
+    if (candidate.children) {
+      if (this.isParentTo(candidate, item)) {
+        parent[0] = candidate;
+        // console.log("isParentTo triggered save of foundParent");
+        // console.log(candidate);
+        // console.log(parent);
+      } else {
+        candidate.children.forEach((child: any) => {
+          this.checkCandidateAgainstChildren(child, item, parent);
+        });
+      }
     }
   }
 
   isParentTo(item: any, searchChild: any): any {
     let isParent = false;
-    if (item.children) {
-      item.children.forEach((child: any) => {
-        if (child == searchChild) {
-          console.log("found parent");
-          isParent = true;
-        }
-      });
-    }
+    // if (item.children) {
+    item.children.forEach((child: any) => {
+      if (child == searchChild) {
+        //console.log("found parent");
+        isParent = true;
+      }
+    });
+    // }
     return isParent;
   }
 
-  @PropSync("selected", { type: Array, default: [] }) selectedItemsProp!: any[];
-  @Prop() multiple!: boolean;
-  @Prop() editable!: boolean;
-
-  get activeSelected() {
-    return (
-      this
-        .selectedItemsProp /*.map((x: any) => {
-        return { id: x.id, tag: x, name: x.get("name") };
-      })*/ ||
-      []
-    );
+  //recursive search for ID
+  getItemById(id: string) {
+    // console.log("searching tagTree for item with ID: " + id);
+    // console.log("tagTree is:");
+    // console.log(this.tagTree);
+    let foundItem = null;
+    for (let item of this.tagTree) {
+      foundItem = this.searchDownTheTree(item, id);
+      if (foundItem) {
+        return foundItem;
+      }
+    }
+    console.log("didn't find any item for id: " + id);
+    return foundItem; // if this is reached no item was found. Bad news :-(
+  }
+  searchDownTheTree(item: any, id: string): any {
+    if (item.id == id) {
+      //console.log("found item with id: " + id);
+      return item;
+    }
+    let foundItem = null;
+    for (let child of item.children) {
+      foundItem = this.searchDownTheTree(child, id);
+      if (foundItem) {
+        return foundItem;
+      }
+    }
+    return foundItem;
   }
 
-  set activeSelected(val: any) {
-    this.selectedItemsProp = val; //.map((x: any) => x.tag);
+  @PropSync("selected", { type: Array }) selectedItemsProp!: any[];
+  //@Prop() preSelectedItems: any[];
+  @Prop() multiple!: boolean;
+  @Prop() editable!: boolean;
+  @Prop({ default: () => [] }) preSelTags!: any[];
+
+  shouldUpdate: boolean = false;
+
+  activeSelectedSet(val: any[]) {
+    if (this.shouldUpdate) {
+      console.log(val);
+      this.selectedItemsProp = val.map(
+        (x: any) => this.getItemById(x).tag
+      ); /*.reduce((acc: any[], x: any) => {
+        const tag = this.getItemById(x).tag;
+        if (tag) {
+          acc.push(tag);
+        }
+        return acc;
+      }, []);*/
+    }
+  }
+
+  get activeSelected() {
+    let computeVal = this.selectedItemsProp.map((x: any) => x.id);
+    return computeVal;
   }
 
   mounted() {
-    this.fetchAllTags();
+    this.fetchAllTags().then(() => {
+      this.shouldUpdate = true;
+      console.log(this.preSelTags);
+      this.activeSelectedSet(this.preSelTags.map((x: any) => x.id));
+    });
+  }
+
+  onSelect(event: any, val: any) {
+    console.log("selectTriggered");
+    console.log(event);
+    console.log(val);
   }
 
   async fetchAllTags() {
+    const query = new Parse.Query("Tag");
+    const result = await query.find();
+    this.tags = result.reduce((acc: any, x: any) => {
+      acc[x.id] = x;
+      return acc;
+    }, {});
+
+    //this.selectedItemsProp = this.activeSelected.map((x: any) => this.tags[x]);
+
     this.tagTree = [];
     this.tagTree = await this.fetchRootTags();
-    this.tagTree.forEach(async (item: any) => {
-      item.children = await this.fetchChildren(item);
-    });
+    for (let i = 0; i < this.tagTree.length; i++) {
+      this.tagTree[i].children = await this.fetchChildren(this.tagTree[i]);
+    }
+    console.log("klar");
   }
 
   async fetchRootTags() {
@@ -286,7 +354,6 @@ export default class BrowseTags extends Vue {
   async fetchChildren(item: any): Promise<any> {
     const query = new Parse.Query("Tag");
     query.equalTo("parent", item.tag);
-
     let queryResults = await query.find();
 
     if (queryResults) {
@@ -326,7 +393,7 @@ export default class BrowseTags extends Vue {
       const newObject = new ParseObject();
 
       newObject.set("name", this.newName);
-      newObject.set("parent", this.createParent);
+      newObject.set("parent", this.createParent.tag);
 
       newObject
         .save()
@@ -365,7 +432,25 @@ export default class BrowseTags extends Vue {
     if (childrenSaved == children.length) {
       let result = this.isDeleting.tag.destroy();
       if (result) {
-        console.log(this.getParentOf(this.isDeleting));
+        let parent = this.getParentOf(this.isDeleting);
+        if (parent) {
+          parent.children.splice(
+            parent.children.findIndex((x: any) => x.id == this.isDeleting.id),
+            1
+          );
+          this.getItemById(parent.id).children = [
+            ...parent.children,
+            ...this.isDeleting.children
+          ];
+        } else {
+          this.tagTree.splice(
+            this.tagTree.findIndex((x: any) => x.id == this.isDeleting.id),
+            1
+          );
+          this.tagTree.push(...this.isDeleting.children);
+        }
+
+        console.log();
       } else {
         console.error("Fel uppstod när objectet skulle sparas.");
       }
@@ -373,12 +458,12 @@ export default class BrowseTags extends Vue {
       console.error("Fel uppstod när underobject skulle flyttas upp.");
     }
   }
-
   createTag() {
     let parent = null;
+    console.log(this.activeSelected);
     if (this.activeSelected.length > 0) {
-      parent = this.activeSelected[0];
-      this.createParent = parent.tag;
+      parent = this.getItemById(this.activeSelected[0]);
+      this.createParent = parent;
     }
 
     const newID = Math.floor(Math.random() * 1000000).toString();
@@ -400,20 +485,46 @@ export default class BrowseTags extends Vue {
     }
   }
 
-  cancelNameEditing() {
-    this.newName = "";
-    this.isEditing = "";
+  cancelCreating() {
+    if (this.createParent) {
+      let index = this.createParent.children.findIndex(
+        (x: any) => x.id == this.isEditing
+      );
+      this.createParent.children.splice(index, 1);
+    } else {
+      let index = this.tagTree.findIndex((x: any) => x.id == this.isEditing);
+      this.tagTree.splice(index, 1);
+    }
+
+    this.cancelNameEditing();
   }
 
-  filter(item: any, search: any, textKey: any) {
+  cancelNameEditing() {
+    // let item = this.getItemById(this.isEditing);
+
+    this.newName = "";
+    this.isEditing = "";
+    this.createParent = null;
+  }
+
+  filterRoots(item: any, search: any, textKey: any): boolean {
+    // console.log("filtering node with name " + item[textKey]);
+    let parent = this.getParentOf(item);
+    let matches = true;
+    if (!parent) {
+      // console.log("it's a root node");
+      matches = item[textKey]
+        .toLocaleLowerCase()
+        .includes(search.toLocaleLowerCase());
+    }
+    // console.log("matches is: " + matches);
+    return matches;
+  }
+
+  filter(item: any, search: any, textKey: any): boolean {
     let matches = item[textKey]
       .toLocaleLowerCase()
       .includes(search.toLocaleLowerCase());
-    // if (matches && item.children.length > 0) {
-    //   this.opened.push(item.id);
-    // } else {
-    //   this.opened.splice(this.opened.indexOf(item.id), 1);
-    // }
 
     return matches;
   }

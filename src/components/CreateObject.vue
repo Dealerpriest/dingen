@@ -79,8 +79,9 @@
                 <BrowseTags
                   v-if="thingOrContainer"
                   :selected.sync="tags"
+                  :preSelTags="tags"
                   :multiple="true"
-                  :editable="true"
+                  :editable="false"
                 />
               </v-flex>
             </v-layout>
@@ -275,6 +276,7 @@ export default class CreateObject extends Vue {
           this.description = "";
           this.amount = "";
           this.type = "";
+          console.log("here");
           this.tags = [];
         },
         (error: any) => {
@@ -310,6 +312,7 @@ export default class CreateObject extends Vue {
             this.description = "";
             this.amount = "";
             this.type = "";
+            console.log("here");
             this.tags = [];
           })
           .catch((error: any) => {
@@ -334,6 +337,7 @@ export default class CreateObject extends Vue {
             this.description = "";
             this.amount = "";
             this.type = "";
+            console.log("here");
             this.tags = [];
             console.log(result);
           },

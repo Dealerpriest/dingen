@@ -1,8 +1,14 @@
 <template>
   <div>
-    <v-card>
-      <BrowseTags :selected.sync="parentTag" :multiple="false" :editable="true" />
-    </v-card>
+    <v-layout style="width: 100%; padding: 30px">
+      <BrowseTags
+        :selected.sync="parentTag"
+        :preSelTags="parentTag"
+        :multiple="false"
+        :editable="true"
+        style="width: 100%"
+      />
+    </v-layout>
   </div>
 </template>
 
