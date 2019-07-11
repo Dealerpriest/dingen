@@ -12,7 +12,9 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="gray darken-1" flat @click="deleteTag">OK</v-btn>
-          <v-btn color="gray darken-1" flat @click="deleteDialog = false">AVBRYT</v-btn>
+          <v-btn color="gray darken-1" flat @click="deleteDialog = false"
+            >AVBRYT</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -32,11 +34,18 @@
           </v-tooltip>
           <v-tooltip bottom open-delay="1000">
             <template v-slot:activator="{ on }">
-              <v-btn v-on="on" icon @click=" openAll = !openAll; $refs.tree.updateAll(openAll);">
+              <v-btn
+                v-on="on"
+                icon
+                @click="
+                  openAll = !openAll;
+                  $refs.tree.updateAll(openAll);
+                "
+              >
                 <v-icon color="white">mdi-expand-all</v-icon>
               </v-btn>
             </template>
-            <span>{{openAll? "Komprimera vyn": "Expandera vyn"}}</span>
+            <span>{{ openAll ? "Komprimera vyn" : "Expandera vyn" }}</span>
           </v-tooltip>
           <v-tooltip bottom open-delay="1000">
             <template v-slot:activator="{ on }">
@@ -92,7 +101,7 @@
               ></v-text-field>
             </template>
             <template v-else>
-              <span>{{data.item.name}}</span>
+              <span>{{ data.item.name }}</span>
             </template>
           </template>
 
@@ -115,7 +124,13 @@
               </v-tooltip>
               <v-tooltip bottom open-delay="1000">
                 <template v-slot:activator="{ on }">
-                  <v-btn v-on="on" @click="cancelNameEditing()" icon small style="margin: 0">
+                  <v-btn
+                    v-on="on"
+                    @click="cancelNameEditing()"
+                    icon
+                    small
+                    style="margin: 0"
+                  >
                     <v-icon color="grey darken-2">mdi-cancel</v-icon>
                   </v-btn>
                 </template>
@@ -127,7 +142,10 @@
                 <template v-slot:activator="{ on }">
                   <v-btn
                     v-on="on"
-                    @click="isEditing = data.item.id; newName = data.item.name"
+                    @click="
+                      isEditing = data.item.id;
+                      newName = data.item.name;
+                    "
                     icon
                     small
                     class="mr-2"
@@ -142,7 +160,10 @@
                 <template v-slot:activator="{ on }">
                   <v-btn
                     v-on="on"
-                    @click="isDeleting = data.item; deleteDialog = true"
+                    @click="
+                      isDeleting = data.item;
+                      deleteDialog = true;
+                    "
                     icon
                     small
                     style="margin: 0"
@@ -164,9 +185,13 @@
 //@ts-ignore
 import { Vue, Component, PropSync, Prop, Watch } from "vue-property-decorator";
 import Parse from "parse";
+import CustomTreeView from "@/components/CustomTreeView.vue";
 
 @Component({
-  components: {}
+  // @ts-ignore
+  components: {
+    CustomTreeView
+  }
 })
 export default class BrowseTags extends Vue {
   search: string = "";
