@@ -1,104 +1,101 @@
 <template>
     <div class="view">
         <div v-if="view == 'block'" class="grid-container">
-            <div v-for="obj in objects" :key="obj.obj.id"
-                 class="grid-item noselect">
-                <v-tooltip bottom open-delay="1000">
-                    <template v-slot:activator="{ on }">
-                        <v-card
-                                :color="obj.isSelected? 'blue' : 'cyan darken-2'"
-                                class="white--text"
-                                height="100%"
-                                @dblclick="$emit('openObj', obj)"
-                                @click.exact="$emit('selectObj', obj)"
-                                @click.ctrl.exact="$emit('ctrlSelectObj', obj)"
-                                @click.shift.exact="$emit('shiftSelectObj', obj)"
-                                style="position: relative;"
-                                ripple
-                                v-on="on"
-                        >
-                            <v-card-title class="card-title"
-                                          style="display: flex; flex-direction: column; justify-content: space-between">
-                                <div style="max-width: 100%">
-                                    <div class="d-headline" style="max-width: 100%">
+            <div v-for="obj in objects" class="grid-item noselect" :key="obj.obj.id">
+                <v-card
+                        :color="obj.isSelected? 'blue' : 'cyan darken-2'"
+                        class="white--text"
+                        height="100%"
+                        @dblclick="$emit('openObj', obj)"
+                        @click.exact="$emit('selectObj', obj)"
+                        @click.ctrl.exact="$emit('ctrlSelectObj', obj)"
+                        @click.shift.exact="$emit('shiftSelectObj', obj)"
+                        style="position: relative;"
+                        ripple
+                >
+                    <v-card-title class="card-title"
+                                    style="display: flex; flex-direction: column; justify-content: space-between">
+                        <div style="max-width: 100%">
+                            <v-tooltip bottom open-delay="1000" >
+                                <template v-slot:activator="{ on }">
+                                    <div class="d-headline" style="max-width: 100%" v-on="on">
                                         <p style="overflow: hidden; text-overflow: ellipsis; margin: 0">
                                             {{obj.obj.get("name")}}
                                         </p>
                                     </div>
-                                </div>
-                                <template v-if="!toc">
-                                    <v-layout flex row justify-center>
-                                        <v-tooltip v-if="obj.obj.get('type')"  bottom open-delay="1000">
-                                            <template v-slot:activator="{ on }">
-                                                <div v-on="on" class="mr-3" style="max-width: 70%">
-                                                    <p style="overflow: hidden; text-overflow: ellipsis; margin: 0; white-space: nowrap">
-                                                        {{obj.obj.get("type")}}
-                                                    </p>
-                                                </div>
-                                            </template>
-                                            <span>Typ: {{obj.obj.get("type")}}</span>
-                                        </v-tooltip>
-                                        <v-tooltip  bottom open-delay="1000">
-                                            <template v-slot:activator="{ on }">
-                                                <div v-on="on">
-                                                    {{obj.amounts.con}} | {{obj.amounts.things}}
-                                                </div>
-                                            </template>
-                                            <span>Innehåller {{obj.amounts.con}} contianrar och {{obj.amounts.things}} saker</span>
-                                        </v-tooltip>
-                                    </v-layout>
                                 </template>
-                                <div v-else>
-                                    {{obj.obj.get("amount")}}
-                                </div>
-                            </v-card-title>
-                            <v-card-text width="100%">{{obj.short_desc}}</v-card-text>
-
-                            <v-card-actions style="position: absolute; bottom: 0; right: 0;">
-                                <v-menu transition="slide-y-transition" bottom>
+                                <span>{{obj.obj.get("name")}}</span>
+                            </v-tooltip>
+                        </div>
+                        <template v-if="!toc">
+                            <v-layout flex row justify-center>
+                                <v-tooltip v-if="obj.obj.get('type')"  bottom open-delay="1000">
                                     <template v-slot:activator="{ on }">
-                                        <v-btn dark icon v-on="on">
-                                            <v-icon>more_vert</v-icon>
-                                        </v-btn>
+                                        <div v-on="on" class="mr-3" style="max-width: 70%">
+                                            <p style="overflow: hidden; text-overflow: ellipsis; margin: 0; white-space: nowrap">
+                                                {{obj.obj.get("type")}}
+                                            </p>
+                                        </div>
                                     </template>
-                                    <v-list>
-                                        <v-list-tile avatar @click="$emit('moveObj', obj.obj)">
-                                            <v-list-tile-avatar>
-                                                <v-icon color="grey">mdi-folder-move</v-icon>
-                                            </v-list-tile-avatar>
-                                            <v-list-tile-title>Flytta</v-list-tile-title>
-                                        </v-list-tile>
-                                        <v-list-tile avatar @click="$emit('openCrForm', {obj: obj.obj, item: toc})">
-                                            <v-list-tile-avatar>
-                                                <v-icon color="grey">edit</v-icon>
-                                            </v-list-tile-avatar>
-                                            <v-list-tile-title>Redigera</v-list-tile-title>
-                                        </v-list-tile>
-                                        <v-list-tile avatar @click="$emit('dupObj', obj.obj)">
-                                            <v-list-tile-avatar>
-                                                <v-icon color="grey">mdi-content-duplicate</v-icon>
-                                            </v-list-tile-avatar>
-                                            <v-list-tile-title>Duplicera</v-list-tile-title>
-                                        </v-list-tile>
-                                        <v-list-tile avatar @click="$emit('convObj', obj.obj)">
-                                            <v-list-tile-avatar>
-                                                <v-icon color="grey">mdi-autorenew</v-icon>
-                                            </v-list-tile-avatar>
-                                            <v-list-tile-title>Konvertera</v-list-tile-title>
-                                        </v-list-tile>
-                                        <v-list-tile avatar @click="$emit('deleteObj', obj.obj)">
-                                            <v-list-tile-avatar>
-                                                <v-icon color="grey">delete</v-icon>
-                                            </v-list-tile-avatar>
-                                            <v-list-tile-title>Ta Bort</v-list-tile-title>
-                                        </v-list-tile>
-                                    </v-list>
-                                </v-menu>
-                            </v-card-actions>
-                        </v-card>
-                    </template>
-                    <span>{{obj.obj.get("name")}}</span>
-                </v-tooltip>
+                                    <span>Typ: {{obj.obj.get("type")}}</span>
+                                </v-tooltip>
+                                <v-tooltip  bottom open-delay="1000">
+                                    <template v-slot:activator="{ on }">
+                                        <div v-on="on">
+                                            {{obj.amounts.con}} | {{obj.amounts.things}}
+                                        </div>
+                                    </template>
+                                    <span>Innehåller {{obj.amounts.con}} contianrar och {{obj.amounts.things}} saker</span>
+                                </v-tooltip>
+                            </v-layout>
+                        </template>
+                        <div v-else>
+                            {{obj.obj.get("amount")}}
+                        </div>
+                    </v-card-title>
+                    <v-card-text width="100%">{{obj.short_desc}}</v-card-text>
+                    <v-card-actions style="position: absolute; bottom: 0; right: 0;">
+                        <v-menu transition="slide-y-transition" bottom>
+                            <template v-slot:activator="{ on }">
+                                <v-btn dark icon v-on="on">
+                                    <v-icon>more_vert</v-icon>
+                                </v-btn>
+                            </template>
+                            <v-list>
+                                <v-list-tile avatar @click="$emit('moveObj', obj.obj)">
+                                    <v-list-tile-avatar>
+                                        <v-icon color="grey">mdi-folder-move</v-icon>
+                                    </v-list-tile-avatar>
+                                    <v-list-tile-title>Flytta</v-list-tile-title>
+                                </v-list-tile>
+                                <v-list-tile avatar @click="$emit('openCrForm', {obj: obj.obj, item: toc})">
+                                    <v-list-tile-avatar>
+                                        <v-icon color="grey">edit</v-icon>
+                                    </v-list-tile-avatar>
+                                    <v-list-tile-title>Redigera</v-list-tile-title>
+                                </v-list-tile>
+                                <v-list-tile avatar @click="$emit('dupObj', obj.obj)">
+                                    <v-list-tile-avatar>
+                                        <v-icon color="grey">mdi-content-duplicate</v-icon>
+                                    </v-list-tile-avatar>
+                                    <v-list-tile-title>Duplicera</v-list-tile-title>
+                                </v-list-tile>
+                                <v-list-tile avatar @click="$emit('convObj', obj.obj)">
+                                    <v-list-tile-avatar>
+                                        <v-icon color="grey">mdi-autorenew</v-icon>
+                                    </v-list-tile-avatar>
+                                    <v-list-tile-title>Konvertera</v-list-tile-title>
+                                </v-list-tile>
+                                <v-list-tile avatar @click="$emit('deleteObj', obj.obj)">
+                                    <v-list-tile-avatar>
+                                        <v-icon color="grey">delete</v-icon>
+                                    </v-list-tile-avatar>
+                                    <v-list-tile-title>Ta Bort</v-list-tile-title>
+                                </v-list-tile>
+                            </v-list>
+                        </v-menu>
+                    </v-card-actions>
+                </v-card>
             </div>
             <v-flex class="grid-item">
                 <v-layout flex fill-height justify-center align-center>

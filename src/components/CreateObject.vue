@@ -44,6 +44,7 @@
                 </v-card>
                 <v-text-field v-if="thingOrContainer" solo v-model="amount" label="Antal"></v-text-field>
                 <v-text-field v-if="!thingOrContainer" solo v-model="type" label="Typ"></v-text-field>
+                <input type="file" id="fileUpload" ref="fileUpload" />
                 <v-combobox
                   v-if="thingOrContainer"
                   v-model="tags"
@@ -81,7 +82,7 @@
                   :selected.sync="tags"
                   :preSelTags="tags"
                   :multiple="true"
-                  :editable="false"
+                  :editable="true"
                 />
               </v-flex>
             </v-layout>
@@ -92,7 +93,7 @@
                 large
                 color="normal"
                 @click="$refs.form.validate()? updateOrCreate(): false"
-              >{{this.updatableObj? "spara" : "Skapa"}}</v-btn>
+              >{{this.updatableObj? "Spara" : "Skapa"}}</v-btn>
             </v-layout>
           </v-container>
         </v-form>
@@ -288,6 +289,15 @@ export default class CreateObject extends Vue {
       if (this.thingOrContainer) {
         const Item = Parse.Object.extend("Thing");
         const newThing = new Item();
+        console.log(this.$refs.fileUpload);
+        console.log(this.$refs.fileUpload.value);
+        if (this.$refs.fileUpload.files[0]) {
+          let file = this.$refs.fileUpload.files[0];
+          console.log(file.name);
+          console.log(file.size);
+          let parseFile = new Parse.File(file.name, file);
+          newThing.set("file", parseFile);
+        }
 
         newThing.set("name", this.name);
         newThing.set("description", this.description);

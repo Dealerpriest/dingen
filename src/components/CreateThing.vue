@@ -48,7 +48,7 @@ y<template>
                     </template>
                   </template>
                 </v-combobox>
-                <BrowseLocation @locChanged="locationChanged"/>
+                <BrowseLocation @locChanged="locationChanged" />
                 <v-textarea solo name="input" label="Beskrivning" value="T" v-model="description"></v-textarea>
               </v-flex>
             </v-layout>

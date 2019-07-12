@@ -1,6 +1,8 @@
 <template>
   <div>
     <v-dialog
+      tabindex="0"
+      autofocus
       v-model="deleteDialog"
       max-width="300px"
       @keyup.esc="deleteDialog = false"
@@ -12,9 +14,7 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="gray darken-1" flat @click="deleteTag">OK</v-btn>
-          <v-btn color="gray darken-1" flat @click="deleteDialog = false"
-            >AVBRYT</v-btn
-          >
+          <v-btn color="gray darken-1" flat @click="deleteDialog = false">AVBRYT</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -24,9 +24,9 @@
           <v-icon color="white" class="mr-3">tag</v-icon>
           <div class="d-headline" style="color: white">Taggar</div>
           <v-spacer></v-spacer>
-          <v-tooltip bottom open-delay="1000">
+          <v-tooltip v-if="multiple" bottom open-delay="1000">
             <template v-slot:activator="{ on }">
-              <v-btn v-on="on" icon @click="activeSelectedSet([])">
+              <v-btn v-on="on" icon @click="selectedNodes = []">
                 <v-icon color="white">mdi-selection-off</v-icon>
               </v-btn>
             </template>
@@ -34,14 +34,7 @@
           </v-tooltip>
           <v-tooltip bottom open-delay="1000">
             <template v-slot:activator="{ on }">
-              <v-btn
-                v-on="on"
-                icon
-                @click="
-                  openAll = !openAll;
-                  $refs.tree.updateAll(openAll);
-                "
-              >
+              <v-btn v-on="on" icon @click="openAllFunc">
                 <v-icon color="white">mdi-expand-all</v-icon>
               </v-btn>
             </template>
@@ -49,7 +42,7 @@
           </v-tooltip>
           <v-tooltip bottom open-delay="1000">
             <template v-slot:activator="{ on }">
-              <v-btn v-on="on" v-if="editable" icon @click="createTag">
+              <v-btn v-on="on" v-if="editable" icon @click="createTag()">
                 <v-icon large color="white">add</v-icon>
               </v-btn>
             </template>
@@ -74,29 +67,30 @@
         ></v-text-field>
       </v-sheet>
       <v-card-text>
-        <v-treeview
+        <CustomTreeView
+          v-model="selectedNodes"
           :items="tagTree"
           :open="opened"
+          @update:open="openedUpdated"
           :search="search"
           :filter="filterRoots"
-          :active="activeSelected"
-          @update:active="activeSelectedSet"
-          @input="onSelect"
+          :active.sync="currentlyActive"
           activatable
-          selectable
+          :selectable="multiple"
           active-class="grey lighten-2"
           selected-color="indigo"
-          :multiple-active="multiple"
           expand-icon="mdi-chevron-down"
+          indeterminate-icon="$vuetify.icons.checkboxOn"
           ref="tree"
         >
-          <template v-slot:label="data" v-if="editable">
-            <template v-if="data.item.id == isEditing">
+          <template v-if="editable" v-slot:label="data">
+            <template v-if="data.item.id == editingID || data.item.id == creatingId">
               <v-text-field
                 @focus="$event.target.select()"
                 autofocus
-                @keypress.enter="saveTag(data.item)"
-                v-model="newName"
+                @keyup.esc.stop.prevent="data.item.id == editingID?cancelNameEditing():cancelCreating()"
+                @keypress.enter="data.item.id == editingID?saveTag(data.item):saveCreatedTag(data.item)"
+                v-model="nameFieldVal"
                 class="mr-3"
               ></v-text-field>
             </template>
@@ -106,76 +100,49 @@
           </template>
 
           <template v-if="editable" v-slot:append="data">
-            <template v-if="data.item.id == isEditing">
-              <v-tooltip bottom open-delay="1000">
-                <template v-slot:activator="{ on }">
-                  <v-btn
-                    v-on="on"
-                    @click="saveTag(data.item)"
-                    icon
-                    small
-                    class="mr-2"
-                    style="margin: 0"
-                  >
-                    <v-icon color="grey darken-2">save</v-icon>
-                  </v-btn>
-                </template>
-                <span>Spara</span>
-              </v-tooltip>
-              <v-tooltip bottom open-delay="1000">
-                <template v-slot:activator="{ on }">
-                  <v-btn
-                    v-on="on"
-                    @click="cancelNameEditing()"
-                    icon
-                    small
-                    style="margin: 0"
-                  >
-                    <v-icon color="grey darken-2">mdi-cancel</v-icon>
-                  </v-btn>
-                </template>
-                <span>Avbryt</span>
-              </v-tooltip>
+            <template v-if="data.item.id == editingID || data.item.id == creatingId">
+              <v-btn
+                @click="data.item.id == editingID?saveTag(data.item):saveCreatedTag(data.item)"
+                icon
+                small
+                class="mr-2"
+                style="margin: 0"
+              >
+                <v-icon color="grey darken-2">save</v-icon>
+              </v-btn>
+              <v-btn
+                @click="data.item.id == editingID?cancelNameEditing():cancelCreating()"
+                icon
+                small
+                style="margin: 0"
+              >
+                <v-icon color="grey darken-2">mdi-cancel</v-icon>
+              </v-btn>
             </template>
             <template v-else>
-              <v-tooltip bottom open-delay="1000">
-                <template v-slot:activator="{ on }">
-                  <v-btn
-                    v-on="on"
-                    @click="
-                      isEditing = data.item.id;
-                      newName = data.item.name;
+              <v-btn
+                @click="
+                      editingID = data.item.id;
+                      nameFieldVal = data.item.name;
                     "
-                    icon
-                    small
-                    class="mr-2"
-                    style="margin: 0"
-                  >
-                    <v-icon color="grey darken-2">edit</v-icon>
-                  </v-btn>
-                </template>
-                <span>Redigera</span>
-              </v-tooltip>
-              <v-tooltip bottom open-delay="1000">
-                <template v-slot:activator="{ on }">
-                  <v-btn
-                    v-on="on"
-                    @click="
-                      isDeleting = data.item;
-                      deleteDialog = true;
-                    "
-                    icon
-                    small
-                    style="margin: 0"
-                  >
-                    <v-icon color="grey darken-2">delete</v-icon>
-                  </v-btn>
-                </template>
-                <span>Ta bort</span>
-              </v-tooltip>
+                icon
+                small
+                class="mr-2"
+                style="margin: 0"
+              >
+                <v-icon color="grey darken-2">edit</v-icon>
+              </v-btn>
+              <v-btn
+                @click="isDeleting = data.item; deleteDialog = true;"
+                icon
+                small
+                style="margin: 0"
+              >
+                <v-icon color="grey darken-2">delete</v-icon>
+              </v-btn>
             </template>
           </template>
-        </v-treeview>
+        </CustomTreeView>
       </v-card-text>
     </v-card>
   </div>
@@ -197,22 +164,45 @@ export default class BrowseTags extends Vue {
   search: string = "";
   tagTree: any[] = [];
   // open: any[] = [];
-  tags: any = null;
-  isEditing: string = "";
+  editingID: string = "";
+  creatingId: string = "";
+  nameFieldVal: string = "";
+
   isDeleting: any = null;
-  newName: string = "";
+
   deleteDialog: boolean = false;
   openAll: boolean = false;
   createParent: any = null;
+  currentlyActive: any[] = [];
+  // opened: any[] = [];
+  openedPreFiltering: any[] = [];
 
   get opened() {
+    console.log("get opened triggered");
     let matchArray: any[] = [];
-    if (this.tagTree && this.search) {
-      this.tagTree.forEach(item => {
-        this.anyMatchInChildren(item, this.search, matchArray);
-      });
+    if (this.search != "") {
+      if (this.tagTree && this.search) {
+        this.tagTree.forEach(item => {
+          this.anyMatchInChildren(item, this.search, matchArray);
+        });
+      }
+      return matchArray;
+    } else {
+      return this.openedPreFiltering;
     }
-    return matchArray;
+  }
+
+  openedUpdated(opened: any) {
+    if (this.search == "") {
+      this.openedPreFiltering = opened;
+    }
+    console.log("openedUpdate triggered");
+  }
+
+  openAllFunc() {
+    this.openAll = !this.openAll;
+    //@ts-ignore
+    this.$refs.tree.updateAll(this.openAll);
   }
 
   anyMatchInChildren(item: any, search: string, matchArray: any[]): boolean {
@@ -276,9 +266,23 @@ export default class BrowseTags extends Vue {
     // console.log("searching tagTree for item with ID: " + id);
     // console.log("tagTree is:");
     // console.log(this.tagTree);
+    let searchDownTheTree = (item: any, id: string): any => {
+      if (item.id == id) {
+        //console.log("found item with id: " + id);
+        return item;
+      }
+      let foundItem = null;
+      for (let child of item.children) {
+        foundItem = searchDownTheTree(child, id);
+        if (foundItem) {
+          return foundItem;
+        }
+      }
+      return foundItem;
+    };
     let foundItem = null;
     for (let item of this.tagTree) {
-      foundItem = this.searchDownTheTree(item, id);
+      foundItem = searchDownTheTree(item, id);
       if (foundItem) {
         return foundItem;
       }
@@ -286,72 +290,98 @@ export default class BrowseTags extends Vue {
     console.log("didn't find any item for id: " + id);
     return foundItem; // if this is reached no item was found. Bad news :-(
   }
-  searchDownTheTree(item: any, id: string): any {
-    if (item.id == id) {
-      //console.log("found item with id: " + id);
-      return item;
-    }
+
+  getItemByTagId(id: string) {
+    console.log("searching tagTree for item with ID: " + id);
+    console.log("tagTree is:", this.tagTree);
+    // console.log(this.tagTree);
+    let searchDownTheTree = (item: any, id: string): any => {
+      if (item.tag.id == id) {
+        //console.log("found item with id: " + id);
+        return item;
+      }
+      let foundItem = null;
+      for (let child of item.children) {
+        foundItem = searchDownTheTree(child, id);
+        if (foundItem) {
+          return foundItem;
+        }
+      }
+      return foundItem;
+    };
     let foundItem = null;
-    for (let child of item.children) {
-      foundItem = this.searchDownTheTree(child, id);
+    for (let item of this.tagTree) {
+      foundItem = searchDownTheTree(item, id);
       if (foundItem) {
         return foundItem;
       }
     }
-    return foundItem;
+    console.log("didn't find any item for id: " + id);
+    return foundItem; // if this is reached no item was found. Bad news :-(
   }
 
   @PropSync("selected", { type: Array }) selectedItemsProp!: any[];
-  //@Prop() preSelectedItems: any[];
   @Prop() multiple!: boolean;
   @Prop() editable!: boolean;
   @Prop({ default: () => [] }) preSelTags!: any[];
 
   shouldUpdate: boolean = false;
 
-  activeSelectedSet(val: any[]) {
+  set selectedNodes(selectedIds: string[]) {
     if (this.shouldUpdate) {
-      console.log(val);
-      this.selectedItemsProp = val.map(
-        (x: any) => this.getItemById(x).tag
-      ); /*.reduce((acc: any[], x: any) => {
-        const tag = this.getItemById(x).tag;
-        if (tag) {
-          acc.push(tag);
+      //console.log("set selectNodes called");
+      console.log(selectedIds);
+      let selectedTags = []; // this.selectedItemsProp = [];
+      for (let id of selectedIds) {
+        let item = this.getItemById(id);
+        if (item.tag) {
+          selectedTags.push(item.tag);
         }
-        return acc;
-      }, []);*/
+      }
+      console.log("after filtering items without tag objects:");
+      console.log(selectedTags);
+      this.selectedItemsProp = selectedTags;
     }
   }
 
-  get activeSelected() {
-    let computeVal = this.selectedItemsProp.map((x: any) => x.id);
-    return computeVal;
+  // efter lunch: Få denna att returnera tagtree id och inte parse id
+  get selectedNodes() {
+    if (this.shouldUpdate) {
+      console.log("get selectNodes called");
+      console.log("got", this.selectedItemsProp);
+      let computeVal = this.selectedItemsProp.map(
+        (x: any) => this.getItemByTagId(x.id).id
+      );
+      console.log("returning this:");
+      console.log(computeVal);
+      return computeVal;
+    } else {
+      return [];
+    }
   }
 
   mounted() {
     this.fetchAllTags().then(() => {
       this.shouldUpdate = true;
       console.log(this.preSelTags);
-      this.activeSelectedSet(this.preSelTags.map((x: any) => x.id));
+      this.selectedNodes = this.preSelTags.map((x: any) => x.id);
     });
   }
 
-  onSelect(event: any, val: any) {
+  onSelect(selectedItems: any) {
     console.log("selectTriggered");
-    console.log(event);
-    console.log(val);
+    console.log(selectedItems);
   }
 
   async fetchAllTags() {
-    const query = new Parse.Query("Tag");
-    const result = await query.find();
-    this.tags = result.reduce((acc: any, x: any) => {
-      acc[x.id] = x;
-      return acc;
-    }, {});
+    // const query = new Parse.Query("Tag");
+    // const result = await query.find();
+    // this.tags = result.reduce((acc: any, x: any) => {
+    //   acc[x.id] = x;
+    //   return acc;
+    // }, {});
 
-    //this.selectedItemsProp = this.activeSelected.map((x: any) => this.tags[x]);
+    //this.selectedItemsProp = this.currentlyActive.map((x: any) => this.tags[x]);
 
     this.tagTree = [];
     this.tagTree = await this.fetchRootTags();
@@ -397,43 +427,74 @@ export default class BrowseTags extends Vue {
     }
   }
 
-  saveTag(item: any) {
-    if (item.tag) {
-      ///update an existing tag with new stuff
-      item.tag.set("name", this.newName);
-
-      item.tag
-        .save()
-        .then(() => {
-          item.name = this.newName;
-          this.newName = "";
-          this.isEditing = "";
-        })
-        .catch((err: any) => {
-          console.error(err);
-        });
-    } else {
-      /// Creates a new parse object (we added a node to the hierarchy)
-      const ParseObject = Parse.Object.extend("Tag");
-      const newObject = new ParseObject();
-
-      newObject.set("name", this.newName);
-      newObject.set("parent", this.createParent.tag);
-
-      newObject
-        .save()
-        .then((result: any) => {
-          console.log("happy save of da TAG!");
-          item.name = this.newName;
-          item.tag = result;
-          this.newName = "";
-          this.isEditing = "";
-          this.createParent = null;
-        })
-        .catch((err: any) => {
-          console.error(err);
-        });
+  createTag() {
+    let parent = null;
+    console.log(this.currentlyActive);
+    if (this.currentlyActive.length > 0) {
+      parent = this.getItemById(this.currentlyActive[0]);
+      this.createParent = parent;
     }
+
+    const newID = Math.floor(Math.random() * 1000000).toString();
+    console.log(newID);
+
+    const newObject = {
+      id: newID,
+      name: "",
+      tag: null,
+      children: []
+    };
+
+    if (parent) {
+      parent.children.push(newObject);
+      this.creatingId = newID;
+      this.openedPreFiltering.push(parent.id);
+    } else {
+      this.tagTree.push(newObject);
+      this.creatingId = newID;
+    }
+  }
+
+  saveCreatedTag(item: any) {
+    const ParseObject = Parse.Object.extend("Tag");
+    const newObject = new ParseObject();
+
+    newObject.set("name", this.nameFieldVal);
+    if (this.createParent) {
+      newObject.set("parent", this.createParent.tag);
+    } else {
+      newObject.set("parent", null);
+    }
+
+    newObject
+      .save()
+      .then((result: any) => {
+        console.log("happy save of da TAG!");
+        item.name = this.nameFieldVal;
+        item.tag = result;
+        this.nameFieldVal = "";
+        this.creatingId = "";
+        this.createParent = null;
+      })
+      .catch((err: any) => {
+        console.error(err);
+      });
+  }
+
+  saveTag(item: any) {
+    item.tag.set("name", this.nameFieldVal);
+
+    item.tag
+      .save()
+      .then(() => {
+        item.name = this.nameFieldVal;
+        this.nameFieldVal = "";
+        this.editingID = "";
+      })
+      .catch((err: any) => {
+        console.error(err);
+      });
+    /// Creates a new parse object (we added a node to the hierarchy)
   }
 
   async deleteTag() {
@@ -483,41 +544,15 @@ export default class BrowseTags extends Vue {
       console.error("Fel uppstod när underobject skulle flyttas upp.");
     }
   }
-  createTag() {
-    let parent = null;
-    console.log(this.activeSelected);
-    if (this.activeSelected.length > 0) {
-      parent = this.getItemById(this.activeSelected[0]);
-      this.createParent = parent;
-    }
-
-    const newID = Math.floor(Math.random() * 1000000).toString();
-    console.log(newID);
-
-    const newObject = {
-      id: newID,
-      name: "",
-      tag: null,
-      children: []
-    };
-
-    if (parent) {
-      parent.children.push(newObject);
-      this.isEditing = newID;
-    } else {
-      this.tagTree.push(newObject);
-      this.isEditing = newID;
-    }
-  }
 
   cancelCreating() {
     if (this.createParent) {
       let index = this.createParent.children.findIndex(
-        (x: any) => x.id == this.isEditing
+        (x: any) => x.id == this.editingID
       );
       this.createParent.children.splice(index, 1);
     } else {
-      let index = this.tagTree.findIndex((x: any) => x.id == this.isEditing);
+      let index = this.tagTree.findIndex((x: any) => x.id == this.editingID);
       this.tagTree.splice(index, 1);
     }
 
@@ -527,8 +562,8 @@ export default class BrowseTags extends Vue {
   cancelNameEditing() {
     // let item = this.getItemById(this.isEditing);
 
-    this.newName = "";
-    this.isEditing = "";
+    this.nameFieldVal = "";
+    this.editingID = "";
     this.createParent = null;
   }
 
