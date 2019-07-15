@@ -44,7 +44,8 @@
                 </v-card>
                 <v-text-field v-if="thingOrContainer" solo v-model="amount" label="Antal"></v-text-field>
                 <v-text-field v-if="!thingOrContainer" solo v-model="type" label="Typ"></v-text-field>
-                <input type="file" id="fileUpload" ref="fileUpload" />
+                <FileInput @update:file="file = $event" :maxFileSizeMb="2" fileTypes="image/*"></FileInput>
+
                 <v-combobox
                   v-if="thingOrContainer"
                   v-model="tags"
@@ -53,6 +54,7 @@
                   readonly
                   solo
                   multiple
+                  class="mt-3"
                 >
                   <template v-slot:selection="data">
                     <v-chip :selected="data.selected" close @input="removeTag(data.item)">
@@ -110,27 +112,30 @@ import Parse from "parse";
 import marked from "marked";
 import BrowseContainer from "@/components/BrowseContainer.vue";
 import BrowseTags from "@/components/BrowseTags.vue";
+import FileInput from "@/components/FileInput.vue";
 
 @Component({
   // @ts-ignore
   components: {
     BrowseContainer,
-    BrowseTags
+    BrowseTags,
+    FileInput
   }
 })
 export default class CreateObject extends Vue {
-  public updatableObj: any = null;
-  public updatableObjCache: any = null;
-  public name: string = "";
-  public amount: string = "";
-  public type: string = "";
-  public tags: any[] = [];
+  updatableObj: any = null;
+  updatableObjCache: any = null;
+  name: string = "";
+  amount: string = "";
+  type: string = "";
+  tags: any[] = [];
+  file: any = null;
 
-  public container: any = null;
-  public editDialog: boolean = false;
+  container: any = null;
+  editDialog: boolean = false;
 
-  public thingOrContainer: boolean = false;
-  public description: string = "";
+  thingOrContainer: boolean = false;
+  description: string = "";
 
   @Prop() curCon!: any;
 
@@ -240,6 +245,11 @@ export default class CreateObject extends Vue {
       this.updatableObj.set("name", this.name);
       this.updatableObj.set("description", this.description);
 
+      if (this.file) {
+        let parseFile = new Parse.File(this.file.name, this.file);
+        this.updatableObj.set("image", parseFile);
+      }
+
       if (this.updatableObj.className == "Thing") {
         this.updatableObj.set("amount", this.amount);
         let tagRelation = this.updatableObj.relation("tags");
@@ -289,14 +299,11 @@ export default class CreateObject extends Vue {
       if (this.thingOrContainer) {
         const Item = Parse.Object.extend("Thing");
         const newThing = new Item();
-        console.log(this.$refs.fileUpload);
-        console.log(this.$refs.fileUpload.value);
-        if (this.$refs.fileUpload.files[0]) {
-          let file = this.$refs.fileUpload.files[0];
-          console.log(file.name);
-          console.log(file.size);
-          let parseFile = new Parse.File(file.name, file);
-          newThing.set("file", parseFile);
+        if (this.file) {
+          console.log(this.file.name);
+          console.log(this.file.size);
+          let parseFile = new Parse.File(this.file.name, this.file);
+          newThing.set("image", parseFile);
         }
 
         newThing.set("name", this.name);
@@ -336,6 +343,10 @@ export default class CreateObject extends Vue {
         newContainer.set("type", this.type);
         newContainer.set("description", this.description);
         newContainer.set("parent", this.container);
+        if (this.file) {
+          let parseFile = new Parse.File(this.file.name, this.file);
+          newContainer.set("image", parseFile);
+        }
         newContainer.save().then(
           async (result: any) => {
             this.$emit(

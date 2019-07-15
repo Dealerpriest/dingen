@@ -206,15 +206,14 @@
                                 :objects="containers"
                                 :view="['block','list'][containerView]"
                                 :toc="false"
+                                :selected.sync="containersSelected"
+                                @objSelected="objSelected"
                                 @openCrForm="openCrForm"
                                 @openObj="openObject"
                                 @moveObj="setMovableObj"
                                 @dupObj="setDuplicateObj"
                                 @convObj="setConvertObj"
                                 @deleteObj="setDeletableObj"
-                                @shiftSelectObj="shiftSelectObject"
-                                @selectObj="selectObject"
-                                @ctrlSelectObj="ctrlSelectObject"
                         ></ObjectView>
                         <v-layout flex row align-center
                                   style="width: 100%; padding: 0 30px 20px 30px; justify-content: space-between;">
@@ -242,15 +241,14 @@
                                 :objects="things"
                                 :view="['block','list'][thingsView]"
                                 :toc="true"
+                                :selected.sync="thingsSelected"
+                                @objSelected="objSelected"
                                 @openCrForm="openCrForm"
                                 @openObj="openObject"
                                 @moveObj="setMovableObj"
                                 @dupObj="setDuplicateObj"
                                 @convObj="setConvertObj"
                                 @deleteObj="setDeletableObj"
-                                @shiftSelectObj="shiftSelectObject"
-                                @selectObj="selectObject"
-                                @ctrlSelectObj="ctrlSelectObject"
                         ></ObjectView>
                     </div>
                     <!-- <v-footer class="mt-5">Footer</v-footer> -->
@@ -279,12 +277,13 @@
     })
     export default class Browser extends Vue {
         containers: any[] = [];
+        containersSelected: any[] = []
         things: any[] = [];
+        thingsSelected: any[] = [];
         currentObject: any = null;
         selectedObject: any = null;
         selectedObjectAction: any = () => {
         };
-        shiftSelectStartPoint: any = null
         thingInformation: any = {};
         breadcrumbs: any[] = [];
         createDialog: boolean = false;
@@ -369,53 +368,27 @@
         }
 
         unselectAll() {
-            this.things.filter(x => x.isSelected).forEach(x => x.isSelected = false)
-            this.containers.filter(x => x.isSelected).forEach(x => x.isSelected = false)
+            this.thingsSelected = []
+            this.containersSelected = []
         }
 
-        ctrlSelectObject(obj: any) {
-            obj.isSelected = !obj.isSelected
-            this.shiftSelectStartPoint = obj.obj
-        }
-
-        shiftSelectObject(obj: any) {
-            obj.isSelected = true
-            if (this.shiftSelectStartPoint) {
-                if (this.shiftSelectStartPoint.className == obj.obj.className) {
-                    let tempArray = []
-                    if (obj.obj.className == "Container") {
-                        tempArray = this.containers
-                    } else {
-                        tempArray = this.things
-                    }
-
-                    let startIndex = tempArray.findIndex(x => x.obj == this.shiftSelectStartPoint)
-                    let endIndex = tempArray.findIndex(x => x.obj == obj.obj)
-                    console.log(startIndex, endIndex)
-                    for (let i = Math.min(startIndex, endIndex); i < Math.max(startIndex, endIndex); i++)
-                        tempArray[i].isSelected = true;
+        objSelected(obj: any) {
+            if (obj) {
+                this.selectedObject = obj.obj
+                if (obj.obj.className == "Container") {
+                    this.thingsSelected = []
+                } else {
+                    this.containersSelected = []
                 }
             } else {
-                this.shiftSelectStartPoint = obj.obj
-            }
-        }
-
-        selectObject(obj: any) {
-            if (obj) {
-                this.unselectAll()
-                this.selectedObject = obj.obj
-                this.shiftSelectStartPoint = obj.obj
-                obj.isSelected = true;
-            } else {
-                this.unselectAll()
                 this.selectedObject = null
-                this.shiftSelectStartPoint = null
+                this.unselectAll()
             }
+            
         }
 
         get selectedObjects() {
-            return [...this.things.filter(x => x.isSelected).map(x => x.obj),
-                ...this.containers.filter(x => x.isSelected).map(x => x.obj)]
+            return [...this.thingsSelected.map(x => x.obj), ...this.containersSelected.map(x => x.obj)]
         }
 
         get showActionSnackbar() {
@@ -424,7 +397,7 @@
 
         async changeContainer(container: any) {
             if (this.currentObject != container) {
-                this.selectObject(null);
+                this.unselectAll();
             }
             this.currentObject = container;
             if (container) {
@@ -500,7 +473,7 @@
         }
 
         setMovableObj(obj: any) {
-            const form = <BrowseContainer>this.$refs.browseContainer;
+            const form = <BrowseContainer> this.$refs.browseContainer;
             form.changeContainer(this.currentObject);
             this.moveDialog = true;
             this.selectedObjectAction = () => {
@@ -544,7 +517,7 @@
                     this.error("Kunde inte flytta object till " +
                         (this.containerSelectedToMove ? this.containerSelectedToMove.get("name") : "Start") + ". \n" + err)
                 }).finally(() => {
-                    this.selectObject(null)
+                    this.unselectAll()
                     this.changeContainer(this.currentObject)
                 })
             }
@@ -594,7 +567,7 @@
                     console.error(error)
                 }).finally(() => {
                     this.changeContainer(this.currentObject)
-                    this.selectObject(null)
+                    this.unselectAll()
                     this.selectedObjectAction = () => {
                     }
                 })
@@ -711,7 +684,7 @@
                             x => x.obj.id == obj.obj.id
                         );
                         if (foundIndex >= 0) {
-                            this.things[foundIndex] = obj;
+                            this.things.splice(foundIndex, 1, obj);
                             if (final) {
                                 this.info("Uppdaterade " + obj.obj.get("name"))
                             }
@@ -729,7 +702,7 @@
                         x => x.obj.id == obj.obj.id
                     );
                     if (foundIndex >= 0) {
-                        this.containers[foundIndex] = obj;
+                        this.containers.splice(foundIndex, 1, obj);
                         if (final) {
                             this.info("Uppdaterade " + obj.obj.get("name"))
                         }

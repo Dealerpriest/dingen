@@ -1,5 +1,6 @@
 import Parse from "parse"
 import removeMd from "remove-markdown"
+import Vue from "vue"
 
 export default {
     state: {
@@ -28,8 +29,8 @@ export default {
         },
 
         parseContainer(store: any, container: any) {
-            return new Promise(async (resolve, reject) =>{
-                let amount = {con: 0, things: 0}
+            return new Promise(async (resolve, reject) => {
+                let amount = { con: 0, things: 0 }
 
                 const query = new Parse.Query("Container");
                 const thingsQuery = new Parse.Query("Thing");
@@ -38,35 +39,44 @@ export default {
 
                 const [conAmount, thingAmount] = await Promise.all([query.count(), thingsQuery.count()])
                 if (conAmount || thingAmount) {
-                    amount = {con: conAmount, things: thingAmount}
+                    amount = { con: conAmount, things: thingAmount }
                 }
 
-                resolve({obj: container, amounts: amount, short_desc: removeMd(container.get("description")), isSelected: false})
+                resolve({ obj: container, amount: amount, short_desc: removeMd(container.get("description")), image: "" })
             })
         },
 
         parseThing(store: any, thing: any) {
-            return new Promise(async (resolve, reject) =>{
+            return new Promise(async (resolve, reject) => {
+                await thing.fetch()
                 let tags = []
                 if (thing.get("tags")) {
                     tags = await thing.get("tags").query().find()
                 }
-                resolve({obj: thing, tags: tags, short_desc: removeMd(thing.get("description")), isSelected: false});
+
+                let image = thing.get("image")
+                let img_url = ""
+                if (image) {
+                    img_url = image.url()
+                }
+                resolve({ obj: thing, tags: tags, short_desc: removeMd(thing.get("description")), image: img_url });
             })
         },
 
         getBreadCrumbs(store: any, obj: any) {
-            return new Promise((resolve, reject) => {
+            return new Promise(async (resolve, reject) => {
                 if (obj) {
                     let parent = obj;
                     let crumbs = [];
                     while (parent != null) {
+                        await parent.fetch()
                         crumbs.push({
                             text: parent.get("name"),
                             disabled: false,
                             id: parent.id
                         });
                         parent = parent.get("parent");
+
                     }
                     crumbs.push({
                         text: "Start",
@@ -193,13 +203,13 @@ export default {
                     } else {
                         reject(result)
                     }
-                }else {
+                } else {
                     reject("Objekt inte definerat!")
                 }
             })
         },
 
-        moveObject(store: any, {obj, selectedContainer}: {obj: any, selectedContainer: any})  {
+        moveObject(store: any, { obj, selectedContainer }: { obj: any, selectedContainer: any }) {
             return new Promise(async (resolve, reject) => {
                 if (obj) {
                     if (selectedContainer && obj.id == selectedContainer) {
@@ -215,6 +225,9 @@ export default {
                         if (parents.find(x => x.id == obj.id)) {
                             reject("Du kan inte flytta en container till en under-container.")
                         } else {
+                            if (selectedContainer == undefined) {
+                                selectedContainer = null
+                            }
                             obj.set("parent", selectedContainer);
                             let result = await obj.save()
                             if (result) {
