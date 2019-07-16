@@ -6,6 +6,7 @@ import '@mdi/font/css/materialdesignicons.css'
 import './registerServiceWorker';
 import Vuetify from "vuetify";
 import 'vuetify/dist/vuetify.min.css';
+import './register-hooks';
 
 Vue.use(Vuetify, {
   iconfont: 'mdi'

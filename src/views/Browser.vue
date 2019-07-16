@@ -7,7 +7,6 @@
             </v-btn>
         </v-snackbar>
         <v-snackbar v-model="showActionSnackbar" :timeout="0" top color="grey">
-            Åtgärder:
             <v-tooltip bottom open-delay="1000">
                 <template v-slot:activator="{ on }">
                     <v-btn v-on="on" dark flat @click="moveSelectedObjects">
@@ -84,25 +83,6 @@
 
             </v-card>
         </v-dialog>
-        <v-dialog v-model="createDialog" max-width="700px">
-            <div style="position: relative; z-index: 1;">
-                <v-btn
-                        color="normal"
-                        @click="createDialog = false"
-                        style="position: absolute; top: 0; right: 0;"
-                        icon
-                >
-                    <v-icon>close</v-icon>
-                </v-btn>
-            </div>
-
-            <CreateObject
-                    ref="crudForm"
-                    :curCon=currentObject
-                    :showBrowser="false"
-                    @updOrCr="updOrCrEvent"
-            />
-        </v-dialog>
         <v-dialog v-model="moveDialog" max-width="700px">
             <v-card>
                 <v-card-title class="headline">Flytta {{selectedObject? selectedObject.get("name"): ""}}</v-card-title>
@@ -115,28 +95,19 @@
                 </v-layout>
             </v-card>
         </v-dialog>
-        <v-layout row fill-height>
-            <v-flex>
-                <v-card flat height="100%">
-                    <v-toolbar>
-                        <v-btn icon @click="goToParent">
-                            <v-icon>arrow_back</v-icon>
-                        </v-btn>
-                        <v-toolbar-title>Browser {{currentObject? "- " +currentObject.get("name"): ""}}
-                        </v-toolbar-title>
-                        <v-spacer></v-spacer>
-                        <v-btn icon>
-                            <v-icon>search</v-icon>
-                        </v-btn>
-                    </v-toolbar>
+            <div class="wrapper-view">
+                <div class="main-view">
                     <div class="breadcrumb">
+                        <v-btn large icon @click="goToParent">
+                            <v-icon large>arrow_back</v-icon>
+                        </v-btn>
                         <v-breadcrumbs :items="breadcrumbs" divider=">">
                             <template v-slot:item="props">
                                 <a
                                         v-if="!props.item.disabled"
-                                        @click="openObjectById(props.item.id)"
+                                        @click="$router.push('/browser/' + props.item.id)"
                                 >{{ props.item.text }}</a>
-                                <p v-else>{{ props.item.text }}</p>
+                                <p v-else style="margin: 0"><strong>{{ props.item.text }}</strong></p>
                             </template>
                         </v-breadcrumbs>
                     </div>
@@ -152,13 +123,13 @@
                                 <div style="width: 100%; display: flex; flex-direction: row; justify-content: space-between;">
                                     <div style="width: 80%; ">
                                         <p class="headline"
-                                           style="overflow: hidden; text-overflow: ellipsis; margin: 0">
+                                        style="overflow: hidden; text-overflow: ellipsis; margin: 0">
                                             {{thingInformation.name}}
                                         </p>
                                     </div>
                                     <div style="width: 20%;">
                                         <p style="overflow: hidden; text-overflow: ellipsis; margin: 0; text-align: right"
-                                           class="headline font-weight-light">{{thingInformation.amount}}</p>
+                                        class="headline font-weight-light">{{thingInformation.amount}}</p>
                                     </div>
                                 </div>
                             </v-card-title>
@@ -179,9 +150,9 @@
                             <v-card-text width="100%" v-html="thingInformation.description"></v-card-text>
                         </v-card>
                     </div>
-                    <div v-else style="height: 100%">
+                    <div v-else>
                         <v-layout flex row align-center
-                                  style="width: 100%; padding: 0 30px 20px 30px; justify-content: space-between;">
+                                style="width: 100%; padding: 0 30px 20px 30px; justify-content: space-between;">
                             <p class="title font-weight-light" style="margin: 0">Containers:</p>
                             <v-btn-toggle v-model="containerView" mandatory>
                                 <v-tooltip bottom open-delay="1000">
@@ -214,9 +185,10 @@
                                 @dupObj="setDuplicateObj"
                                 @convObj="setConvertObj"
                                 @deleteObj="setDeletableObj"
+                                @info="openInfoView"
                         ></ObjectView>
                         <v-layout flex row align-center
-                                  style="width: 100%; padding: 0 30px 20px 30px; justify-content: space-between;">
+                                style="width: 100%; padding: 0 30px 20px 30px; justify-content: space-between;">
                             <p class="title font-weight-light" style="margin: 0">Saker:</p>
                             <v-btn-toggle v-model="thingsView" mandatory>
                                 <v-tooltip bottom open-delay="1000">
@@ -249,12 +221,50 @@
                                 @dupObj="setDuplicateObj"
                                 @convObj="setConvertObj"
                                 @deleteObj="setDeletableObj"
+                                @info="openInfoView"
                         ></ObjectView>
                     </div>
-                    <!-- <v-footer class="mt-5">Footer</v-footer> -->
-                </v-card>
-            </v-flex>
-        </v-layout>
+                </div>
+                <v-divider vertical></v-divider>
+                <div v-show="createDialog" class="side-view">
+                    <div style="position: relative; z-index: 1;">
+                        <v-btn
+                                color="normal"
+                                @click="createDialog = false"
+                                style="position: absolute; top: 0; right: 0;"
+                                icon
+                        >
+                            <v-icon>close</v-icon>
+                        </v-btn>
+                    </div>
+
+                    <CreateObject
+                            ref="crudForm"
+                            :curCon=currentObject
+                            :showBrowser="false"
+                            @updOrCr="updOrCrEvent"
+                            @close="createDialog = false"
+                    />
+                </div>
+
+                <div v-show="detailedView" class="side-view">
+                    <div style="position: relative; z-index: 1;">
+                        <v-btn
+                                color="normal"
+                                @click="detailedView = false"
+                                style="position: absolute; top: 0; right: 0;"
+                                icon
+                        >
+                            <v-icon>close</v-icon>
+                        </v-btn>
+                    </div>
+
+                    <h1>{{selectedObject? selectedObject.get("name"): ""}}</h1>
+                   
+                </div>
+                
+                <!-- <v-footer class="mt-5">Footer</v-footer> -->
+            </div>
     </div>
 </template>
 
@@ -299,15 +309,57 @@
 
         containerView: any = 0
         thingsView: any = 1
+        detailedView: boolean = true
 
+        beforeRouteEnter (to: any, from: any, next: any) {
+            console.log("beforeRouteEnter triggered");
+            next((vm: any) => {
+                if (to.params.id) {
+                    vm.openObjectById(to.params.id);
+                } else {
+                    vm.loadingDialog = true;
+                    vm.changeContainer(null);
+                }
+            })
+        }
 
-        beforeMount() {
-            if (this.$route.params.id) {
-                this.openObjectById(this.$route.params.id);
+        beforeRouteUpdate (to: any, from: any, next: any){
+            console.log("beforeRouteUpdate triggered");
+            if (to.params.id) {
+                this.openObjectById(to.params.id);
             } else {
                 this.loadingDialog = true;
                 this.changeContainer(null);
             }
+            next()
+        }
+
+        beforeRouteLeave (to: any, from: any, next: any) {
+            console.log("beforeRouteLeave triggered");
+            next()
+        }
+
+        goToParent() {
+            if (this.currentObject) {
+                this.loadingDialog = true
+                const parent = this.currentObject.get("parent")
+                if (parent) {
+                    this.$router.push("/browser/" + parent.id);
+                } else {
+                    this.$router.push("/browser");
+                }
+                
+            }
+        }
+
+        beforeMount() {
+            console.log("beforeMount triggered");
+            // if (this.$route.params.id) {
+            //     this.openObjectById(this.$route.params.id);
+            // } else {
+            //     this.loadingDialog = true;
+            //     this.changeContainer(null);
+            // }
         }
 
         error(msg: any) {
@@ -335,35 +387,35 @@
                 const query = new Parse.Query("Container");
                 query.equalTo("objectId", id);
                 let result = await query.first()
+
                 if (!result) {
                     const thingQuery = new Parse.Query("Thing");
                     thingQuery.equalTo("objectId", id);
                     result = await thingQuery.first()
                 }
 
-                this.openObject({obj: result})
+                if (result!.className == "Container") {
+                    this.changeContainer(result)
+                } else {
+                    this.currentObject = result;
+                    this.updateThingInfo();
+                    this.$store.dispatch("getBreadCrumbs", this.currentObject).then((result: any) => {
+                        this.breadcrumbs = result
+                    })
+                }
             } else {
                 this.changeContainer(null);
             }
         }
 
         openObject(obj: any) {
+            console.log("opening new object!!");
             this.loadingDialog = true;
 
             if (obj) {
-                if (obj.obj.className == "Container") {
-                    this.changeContainer(obj.obj)
-                } else {
-                    this.currentObject = obj.obj;
-                    this.$router.replace("/browser/" + obj.obj.id);
-                    this.updateThingInfo();
-                    this.$store.dispatch("getBreadCrumbs", this.currentObject).then((result: any) => {
-                        this.breadcrumbs = result
-                    })
-                    this.loadingDialog = false;
-                }
+                this.$router.push("/browser/" + obj.obj.id);
             } else {
-                this.changeContainer(null)
+                this.$router.push("/browser/");
             }
         }
 
@@ -395,16 +447,22 @@
             return this.selectedObjects.length > 1
         }
 
+        openInfoView(obj: any) {
+            this.createDialog = false;
+            this.detailedView = true;
+        }
+
         async changeContainer(container: any) {
+            console.log("change container triggered");
             if (this.currentObject != container) {
                 this.unselectAll();
             }
             this.currentObject = container;
-            if (container) {
-                this.$router.replace("/browser/" + container.id);
-            } else {
-                this.$router.replace("/browser");
-            }
+            // if (container) {
+            //     this.$router.push("/browser/" + container.id);
+            // } else {
+            //     this.$router.push("/browser");
+            // }
 
             const loadContainers = async () => {
                 let query: any = null;
@@ -467,9 +525,10 @@
         }
 
         public openCrForm(params: any) {
-            const form = <CreateObject>this.$refs.crudForm;
-            form.setFormData(params.obj, params.item);
             this.createDialog = true;
+            this.detailedView = false;
+            const createComponent = <CreateObject> this.$refs.crudForm;
+            createComponent.setFormData(params.obj, params.item);
         }
 
         setMovableObj(obj: any) {
@@ -665,13 +724,6 @@
             }
         }
 
-        goToParent() {
-            if (this.currentObject) {
-                this.loadingDialog = true
-                this.changeContainer(this.currentObject.get("parent"));
-            }
-        }
-
         public updOrCrEvent(obj: any, final = true) {
             if (obj) {
                 console.log(obj)
@@ -713,8 +765,6 @@
                         }
                     }
                 }
-
-                this.createDialog = false;
             } else {
                 this.error("Fel uppstod! Kunde inte skapa eller uppdatera objekt. Information har kanske inte sparats.")
             }
@@ -724,13 +774,7 @@
 
 <style scoped lang="scss">
     .browser {
-        min-height: 100%;
-    }
-
-    .floating-button {
-        position: fixed;
-        right: 32px;
-        bottom: 32px;
+        height: calc(100% - 48px);
     }
 
     .breadcrumb {
@@ -751,5 +795,23 @@
     .spacer {
         margin: 10px 0;
         padding: 20px 40px 10px 40px;
+    }
+    
+    .wrapper-view {
+        display: flex;
+        flex-direction: row;
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .main-view {
+        width: 100%;
+         overflow-y: auto; 
+    }
+
+    .side-view {
+        width: 30%;
+        min-width: 400px;
+        overflow: hidden auto;
     }
 </style>

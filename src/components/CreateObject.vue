@@ -11,12 +11,13 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-card width="100%">
+    <div width="100%">
       <v-card-title>
         <span class="title font-weight-light">{{formTitle}}</span>
       </v-card-title>
       <v-card-text>
         <v-form
+          v-model="formIsValid"
           @keydown.ctrl.enter="$refs.form.validate()? updateOrCreate(): false"
           ref="form"
           lazy-validation
@@ -32,6 +33,7 @@
                   required
                   :rules="[v => !!v || 'Ett namn är nödvändigt!']"
                 ></v-text-field>
+                <v-text-field v-if="thingOrContainer" solo v-model="amount" label="Antal"></v-text-field>
                 <v-textarea
                   solo
                   name="input"
@@ -42,9 +44,13 @@
                 <v-card raised style="height: 150px; overflow: auto; margin-bottom: 30px">
                   <v-card-text v-html="getMarkedDesc"></v-card-text>
                 </v-card>
-                <v-text-field v-if="thingOrContainer" solo v-model="amount" label="Antal"></v-text-field>
                 <v-text-field v-if="!thingOrContainer" solo v-model="type" label="Typ"></v-text-field>
-                <FileInput @update:file="file = $event" :maxFileSizeMb="2" fileTypes="image/*"></FileInput>
+                <FileInput
+                  @update:file="file = $event"
+                  :value="file"
+                  :maxFileSizeMb="2"
+                  fileTypes="image/*"
+                ></FileInput>
 
                 <v-combobox
                   v-if="thingOrContainer"
@@ -92,15 +98,17 @@
           <v-container>
             <v-layout flex row align-center justify-center md12>
               <v-btn
+                :disabled="!formIsValid"
                 large
                 color="normal"
                 @click="$refs.form.validate()? updateOrCreate(): false"
               >{{this.updatableObj? "Spara" : "Skapa"}}</v-btn>
+              <v-btn large color="error" @click="$emit('close'); resetForm()">{{"Avbryt"}}</v-btn>
             </v-layout>
           </v-container>
         </v-form>
       </v-card-text>
-    </v-card>
+    </div>
   </div>
 </template>
 
@@ -130,6 +138,7 @@ export default class CreateObject extends Vue {
   type: string = "";
   tags: any[] = [];
   file: any = null;
+  formIsValid: boolean = true;
 
   container: any = null;
   editDialog: boolean = false;
@@ -163,11 +172,13 @@ export default class CreateObject extends Vue {
   }
 
   public setFormData(obj: any, toc: boolean) {
+    console.log("setFormData triggered");
     //@ts-ignore
     //this.$nextTick(() => this.$refs.nameInput.$el.children[0].focus())
     this.thingOrContainer = toc;
     if (obj != null) {
       if (this.updatableObj) {
+        //replace currently edited object with the new
         this.updatableObj = obj;
         this.acceptEditObj();
       } else {
@@ -176,23 +187,21 @@ export default class CreateObject extends Vue {
           this.type.length > 0 ||
           this.description.length > 0 ||
           this.amount.length > 0 ||
-          this.tags.length > 0
+          this.tags.length > 0 ||
+          this.file != null
         ) {
           this.updatableObjCache = obj;
+          //trigger question to lose data
           this.editDialog = true;
         } else {
           this.updatableObjCache = null;
           this.updatableObj = obj;
+          this.file = null;
           this.acceptEditObj();
         }
       }
     } else if (this.updatableObj) {
-      this.updatableObj = null;
-      this.name = "";
-      this.description = "";
-      this.amount = "";
-      this.type = "";
-      this.tags = [];
+      this.resetForm();
     }
   }
 
@@ -227,6 +236,7 @@ export default class CreateObject extends Vue {
     } else if (this.updatableObj.className == "Container") {
       this.type = this.updatableObj.get("type");
     }
+    this.file = null;
     this.name = this.updatableObj.get("name");
     this.description = this.updatableObj.get("description");
   }
@@ -238,6 +248,18 @@ export default class CreateObject extends Vue {
   removeTag(item: any) {
     this.tags.splice(this.tags.indexOf(item), 1);
     this.tags = [...this.tags];
+  }
+
+  resetForm() {
+    this.updatableObj = null;
+    this.name = "";
+    this.description = "";
+    this.amount = "";
+    this.type = "";
+    this.tags = [];
+    this.file = null;
+    //@ts-ignore
+    this.$refs.form.resetValidation();
   }
 
   async updateOrCreate() {
@@ -282,13 +304,7 @@ export default class CreateObject extends Vue {
               await this.$store.dispatch("parseContainer", response)
             );
           }
-          this.updatableObj = null;
-          this.name = "";
-          this.description = "";
-          this.amount = "";
-          this.type = "";
-          console.log("here");
-          this.tags = [];
+          this.resetForm();
         },
         (error: any) => {
           console.error("Error while updating object", error);
@@ -315,7 +331,7 @@ export default class CreateObject extends Vue {
           let tagRelation = newThing.relation("tags");
           tagRelation.add(this.tags);
         }
-        console.log("sjsda");
+
         newThing
           .save()
           .then(async (result: any) => {
@@ -324,13 +340,7 @@ export default class CreateObject extends Vue {
               "updOrCr",
               await this.$store.dispatch("parseThing", result)
             );
-            this.updatableObj = null;
-            this.name = "";
-            this.description = "";
-            this.amount = "";
-            this.type = "";
-            console.log("here");
-            this.tags = [];
+            this.resetForm();
           })
           .catch((error: any) => {
             console.error("Error while creating Item: ", error);
@@ -353,14 +363,7 @@ export default class CreateObject extends Vue {
               "updOrCr",
               await this.$store.dispatch("parseContainer", result)
             );
-            this.updatableObj = null;
-            this.name = "";
-            this.description = "";
-            this.amount = "";
-            this.type = "";
-            console.log("here");
-            this.tags = [];
-            console.log(result);
+            this.resetForm();
           },
           (err: any) => {
             console.error(err);

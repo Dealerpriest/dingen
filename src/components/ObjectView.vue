@@ -1,5 +1,5 @@
 <template>
-  <div class="view">
+  <div @click.exact.capture="view == 'block'?selectObject():null" class="view">
     <div v-if="view == 'block'" class="grid-container">
       <div v-for="obj in objects" class="grid-item noselect" :key="obj.obj.id">
         <v-card
@@ -11,7 +11,7 @@
           @click.ctrl.exact="ctrlSelectObject(obj)"
           @click.shift.exact="shiftSelectObject(obj)"
           style="position: relative;"
-          ripple
+          :ripple="false"
         >
           <v-layout width="100%" style="height: calc(100% - 73px)">
             <v-img v-if="obj.image.length > 0" :src="obj.image"></v-img>
@@ -59,6 +59,12 @@
                 </v-btn>
               </template>
               <v-list>
+                <v-list-tile avatar @click="$emit('info', obj.obj)">
+                  <v-list-tile-avatar>
+                    <v-icon color="grey">mdi-information-outline</v-icon>
+                  </v-list-tile-avatar>
+                  <v-list-tile-title>Visa Info</v-list-tile-title>
+                </v-list-tile>
                 <v-list-tile avatar @click="$emit('moveObj', obj.obj)">
                   <v-list-tile-avatar>
                     <v-icon color="grey">mdi-folder-move</v-icon>
@@ -119,27 +125,28 @@
       </v-flex>
     </div>
     <v-layout v-if="view == 'list'" flex column class="list-view">
+      <v-card></v-card>
       <v-data-table
         :headers="listHeaders"
         :items="listObjects"
         item-key="id"
         hide-actions
         v-model="selectedItems"
-        select-all
+        class="elevation-1"
       >
         <template v-slot:items="props">
           <tr
-            @click="onClickRow(props, $event)"
+            @click.exact="selectObject(props.item)"
+            @click.ctrl.exact="ctrlSelectObject(props.item)"
+            @click.shift.exact="shiftSelectObject(props.item)"
+            :active="props.selected"
             style="border-bottom: none; border-top: 1px solid lightgrey"
           >
             <td style="width: 34px">
-              <v-checkbox
-                class="prevent-expand"
-                v-model="props.selected"
-                @change="$emit('objSelected', props.item)"
+              <v-icon
+                @click="props.expanded = !props.expanded"
                 primary
-                hide-details
-              ></v-checkbox>
+              >{{props.expanded?"mdi-chevron-down":"mdi-chevron-right"}}</v-icon>
             </td>
             <td>
               <div class="block-headline">{{ props.item.name }}</div>
@@ -163,11 +170,17 @@
             <td class="text-xs-right">
               <v-menu transition="slide-y-transition" bottom>
                 <template v-slot:activator="{ on }">
-                  <v-btn class="prevent-expand" icon v-on="on" @click="selectObject(props.item)">
+                  <v-btn icon v-on="on" @click="selectObject(props.item)">
                     <v-icon>more_vert</v-icon>
                   </v-btn>
                 </template>
                 <v-list>
+                  <v-list-tile avatar @click="$emit('info', props.item.obj)">
+                    <v-list-tile-avatar>
+                      <v-icon color="grey">mdi-information-outline</v-icon>
+                    </v-list-tile-avatar>
+                    <v-list-tile-title>Visa Info</v-list-tile-title>
+                  </v-list-tile>
                   <v-list-tile avatar @click="$emit('moveObj', props.item.obj)">
                     <v-list-tile-avatar>
                       <v-icon color="grey">mdi-folder-move</v-icon>
@@ -208,10 +221,10 @@
         </template>
         <template v-slot:expand="props">
           <v-layout flex row style="padding: 16px 0">
-            <v-flex md1 class="mr-3">
+            <v-flex md2 class="mr-3 ml-3">
               <v-img height="100px" v-if="props.item.image.length > 0" :src="props.item.image"></v-img>
               <v-layout style="height: 100px" v-else-if="toc" flex justify-center align-center>
-                <v-icon x-large color="grey">mdi-shape</v-icon>
+                <v-icon x-large color="grey">add</v-icon>
               </v-layout>
               <v-layout style="height: 100px" v-else flex justify-center align-center>
                 <v-icon x-large color="gray">{{getIconByType(props.item)}}</v-icon>
@@ -280,6 +293,7 @@ export default class ObjectView extends Vue {
   @PropSync("selected", { type: Array }) selectedItems!: any[];
 
   listHeaders: any[] = [
+    { text: "", value: "expand", sortable: false },
     {
       text: "Namn",
       align: "left",
@@ -351,13 +365,19 @@ export default class ObjectView extends Vue {
   }
 
   ctrlSelectObject(obj: any) {
-    this.selectedItems.push(obj);
+    let objIndex = this.selectedItems.indexOf(obj);
+    console.log("tested item's index in selectedItems:", objIndex);
+    if (objIndex != -1) {
+      this.selectedItems.splice(objIndex, 1);
+    } else {
+      this.selectedItems.push(obj);
+    }
   }
 
   onClickRow(data: any, evt: any) {
-    if (!evt.target.closest(".prevent-expand")) {
-      data.expanded = !data.expanded;
-    }
+    // if (!evt.target.closest(".prevent-expand")) {
+    //   data.expanded = !data.expanded;
+    // }
   }
 }
 </script>

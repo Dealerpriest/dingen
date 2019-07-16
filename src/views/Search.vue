@@ -3,11 +3,7 @@
         <v-layout row fill-height>
             <v-flex>
                 <v-card flat height="100%">
-                    <v-toolbar>
-                        <v-icon>search</v-icon>
-                        <v-toolbar-title>Sök</v-toolbar-title>
-                    </v-toolbar>
-
+                
                     <div style="text-align: center; margin-top: 40px">
                         <h3>WIP (En så länge en väldigt enkel sökning. Mer funktioner tillkommer!)</h3>
                     </div>

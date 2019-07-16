@@ -83,6 +83,7 @@ export default {
                         disabled: false,
                         id: ""
                     });
+                    crumbs[0].disabled = true;
                     resolve(crumbs.reverse())
                 } else {
                     resolve([

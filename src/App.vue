@@ -1,10 +1,12 @@
 <template>
   <v-app id="app">
-    <v-tabs fixed-tabs>
-      <v-tab to="/browser">Browser</v-tab>
-      <v-tab to="/tags">Tags</v-tab>
-      <v-tab to="/search">Search</v-tab>
-    </v-tabs>
+    <v-card>
+      <v-tabs fixed-tabs class="raised" style="z-index: 2">
+        <v-tab to="/search">Search</v-tab>
+        <v-tab to="/browser">Browser</v-tab>
+        <v-tab to="/tags">Tags</v-tab>
+      </v-tabs>
+    </v-card>
     <router-view />
   </v-app>
 </template>
@@ -15,7 +17,11 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
-  min-height: 100vh;
+  height: 100vh;
+}
+
+html {
+  overflow-y: auto !important;
 }
 
 #nav {
