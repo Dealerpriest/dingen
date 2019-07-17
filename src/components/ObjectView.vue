@@ -168,6 +168,9 @@
               <div class="block-headline" v-else>{{props.item.amount}}</div>
             </td>
             <td class="text-xs-right">
+              <v-btn icon @click="$emit('info', props.item.obj)">
+                <v-icon>mdi-information-outline</v-icon>
+              </v-btn>
               <v-menu transition="slide-y-transition" bottom>
                 <template v-slot:activator="{ on }">
                   <v-btn icon v-on="on" @click="selectObject(props.item)">
@@ -222,7 +225,12 @@
         <template v-slot:expand="props">
           <v-layout flex row style="padding: 16px 0">
             <v-flex md2 class="mr-3 ml-3">
-              <v-img height="100px" v-if="props.item.image.length > 0" :src="props.item.image"></v-img>
+              <v-img
+                height="100px"
+                v-if="props.item.image.length > 0"
+                :src="props.item.image"
+                contain
+              ></v-img>
               <v-layout style="height: 100px" v-else-if="toc" flex justify-center align-center>
                 <v-icon x-large color="grey">add</v-icon>
               </v-layout>
@@ -250,7 +258,7 @@
           </v-layout>
         </template>
       </v-data-table>
-      <v-layout row justify-center style="margin-bottom: 20px">
+      <v-layout row justify-center class="mt-3 mb-3">
         <v-tooltip bottom open-delay="1000">
           <template v-slot:activator="{ on }">
             <v-btn

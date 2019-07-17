@@ -47,7 +47,7 @@
                 <v-text-field v-if="!thingOrContainer" solo v-model="type" label="Typ"></v-text-field>
                 <FileInput
                   @update:file="file = $event"
-                  :value="file"
+                  ref="fileInput"
                   :maxFileSizeMb="2"
                   fileTypes="image/*"
                 ></FileInput>
@@ -103,7 +103,11 @@
                 color="normal"
                 @click="$refs.form.validate()? updateOrCreate(): false"
               >{{this.updatableObj? "Spara" : "Skapa"}}</v-btn>
-              <v-btn large color="error" @click="$emit('close'); resetForm()">{{"Avbryt"}}</v-btn>
+              <v-btn
+                large
+                color="error"
+                @click="$emit('close', updatableObj || updatableObjCache); resetForm()"
+              >{{"Avbryt"}}</v-btn>
             </v-layout>
           </v-container>
         </v-form>
@@ -173,8 +177,12 @@ export default class CreateObject extends Vue {
 
   public setFormData(obj: any, toc: boolean) {
     console.log("setFormData triggered");
-    //@ts-ignore
-    //this.$nextTick(() => this.$refs.nameInput.$el.children[0].focus())
+    // this.$nextTick(() => this.$refs.nameInput.$el.children[0].focus())
+    this.$nextTick(() => {
+      (<Vue>this.$refs.nameInput).$el.querySelector("input")!.select();
+      //@ts-ignore
+      this.$refs.form.resetValidation();
+    });
     this.thingOrContainer = toc;
     if (obj != null) {
       if (this.updatableObj) {
@@ -196,7 +204,7 @@ export default class CreateObject extends Vue {
         } else {
           this.updatableObjCache = null;
           this.updatableObj = obj;
-          this.file = null;
+          this.clearFileInput();
           this.acceptEditObj();
         }
       }
@@ -236,7 +244,7 @@ export default class CreateObject extends Vue {
     } else if (this.updatableObj.className == "Container") {
       this.type = this.updatableObj.get("type");
     }
-    this.file = null;
+    this.clearFileInput();
     this.name = this.updatableObj.get("name");
     this.description = this.updatableObj.get("description");
   }
@@ -257,9 +265,16 @@ export default class CreateObject extends Vue {
     this.amount = "";
     this.type = "";
     this.tags = [];
-    this.file = null;
+    this.clearFileInput();
     //@ts-ignore
     this.$refs.form.resetValidation();
+    (<Vue>this.$refs.nameInput).$el.querySelector("input")!.select();
+  }
+
+  clearFileInput() {
+    // this.file = null;
+    //@ts-ignore
+    (<Vue>this.$refs.fileInput).clear();
   }
 
   async updateOrCreate() {
