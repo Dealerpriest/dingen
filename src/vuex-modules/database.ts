@@ -42,7 +42,13 @@ export default {
                     amount = { con: conAmount, things: thingAmount }
                 }
 
-                resolve({ obj: container, amount: amount, short_desc: removeMd(container.get("description")), image: "" })
+                let image = container.get("image")
+                let img_url = ""
+                if (image) {
+                    img_url = image.url()
+                }
+
+                resolve({ obj: container, amount: amount, short_desc: removeMd(container.get("description")), image: img_url })
             })
         },
 
