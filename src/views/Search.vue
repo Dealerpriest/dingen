@@ -1,166 +1,155 @@
 <template>
   <div class="search" style="height: 100vh; overflow: hidden auto">
-    <v-layout flex colum justify-center>
-      <v-card class="main-wrapper">
-        <v-card style="margin: 30px;">
-          <v-card-text>
-            <v-progress-linear indeterminate :active="isLoading" height="4"></v-progress-linear>
-            <v-form ref="form" lazy-validation>
-              <v-text-field
-                label="Sök"
-                append-outer-icon="search"
-                clearable
-                v-model="searchQuery"
-                @input="isTyping = true"
-              ></v-text-field>
+    <div class="wrapper-view">
+      <div class="main-view">
+        <v-layout flex colum justify-center>
+          <v-card class="main-wrapper">
+            <v-card style="margin: 30px;">
+              <v-card-text>
+                <v-progress-linear indeterminate :active="isLoading" height="4"></v-progress-linear>
+                <v-form ref="form" lazy-validation>
+                  <v-text-field
+                    label="Sök"
+                    append-outer-icon="search"
+                    clearable
+                    v-model="searchQuery"
+                    @input="isTyping = true"
+                    @keypress.enter.prevent="submitSearch"
+                  ></v-text-field>
 
-              <v-expansion-panel>
-                <v-expansion-panel-content>
-                  <template v-slot:header>
-                    <div>Avancerat</div>
-                  </template>
-                  <v-card>
-                    <v-card-text>
-                      <v-layout flex row justify-center>
-                        <v-layout justify-left style="width: 50%" class="mr-2">
-                          <p>Hämta från:</p>
-                          <v-checkbox
-                            @change="searchObjects"
-                            v-model="selectedObjectTypes"
-                            label="Containers"
-                            value="Container"
-                          ></v-checkbox>
-                          <v-checkbox
-                            @change="searchObjects"
-                            v-model="selectedObjectTypes"
-                            label="Saker"
-                            value="Thing"
-                          ></v-checkbox>
-                          <!-- <v-combobox
-                              v-model="selectedObjectTypes"
-                              :items="objectTypes"
-                              label="Sök i:"
-                              chips
-                              clearable
-                              multiple
-                              hide-selected
-                              auto-select-first
-                              item-text="name"
-                              item-value="value"
-                              deletable-chips
-                              @change="autoSearch? searchObjects(): false"
-                              required
-                              :rules="[v => (v && v.length > 0) || 'Du måste välja minst ett object att söka efter.']"
-                          ></v-combobox>-->
-                        </v-layout>
-                        <v-layout style="width: 50%" class="ml-2">
-                          <p>Matcha mot:</p>
-                          <v-checkbox
-                            @change="searchObjects"
-                            v-model="selectedObjectFields"
-                            label="Namn"
-                            value="name"
-                          ></v-checkbox>
-                          <v-checkbox
-                            @change="searchObjects"
-                            v-model="selectedObjectFields"
-                            label="Beskrivning"
-                            value="description"
-                          ></v-checkbox>
-                          <v-checkbox
-                            @change="searchObjects"
-                            v-if="!(selectedObjectTypes.indexOf('Thing') < 0)"
-                            v-model="matchAgainstTags"
-                            label="Taggar"
-                          ></v-checkbox>
-                          <!-- <v-combobox
-                              v-model="selectedObjectFields"
-                              :items="objectFields"
-                              label="Fält:"
-                              chips
-                              clearable
-                              multiple
-                              hide-selected
-                              auto-select-first
-                              item-text="name"
-                              item-value="value"
-                              deletable-chips
-                              @change="autoSearch? searchObjects(): false"
-                              required
-                              :rules="[v => (v && v.length > 0) || 'Du måste välja minst ett fält att söka i.']"
-                          ></v-combobox>-->
-                        </v-layout>
-                      </v-layout>
-                      <v-switch v-model="autoSearch" label="Auto sök"></v-switch>
-                    </v-card-text>
-                  </v-card>
-                </v-expansion-panel-content>
-              </v-expansion-panel>
-
-              <v-layout flex row justify-center class="mt-3">
-                <v-btn color="info" @click="searchObjects">
-                  <v-icon left dark>search</v-icon>Sök
-                </v-btn>
-              </v-layout>
-            </v-form>
-          </v-card-text>
-        </v-card>
-
-        <v-layout flex column>
-          <template v-for="(obj, index) in objects">
-            <v-divider :key="index" />
-            <v-layout
-              :key="obj.obj.id"
-              color="grey lighten-2"
-              style="margin-bottom: 20px"
-              @click="openObj(obj.obj)"
-              ripple
-            >
-              <v-layout flex row>
-                <div class="object-icon-container">
-                  <v-img v-if="obj.image" :src="obj.image" width="70%" contain></v-img>
-                  <v-icon v-else x-large>{{getObjectIcon(obj.obj)}}</v-icon>
-                </div>
-                <v-layout flex column>
-                  <v-card-title>
-                    <p
-                      class="d-headline"
-                      style="margin: 0"
-                    >{{obj.obj.get("name") + " | " + obj.score}}</p>
-                  </v-card-title>
-                  <v-card-text>
-                    <v-layout v-if="obj.obj.className == 'Thing'" flex row align-center>
-                      <v-icon>tag</v-icon>
-                      <v-chip
-                        v-for="tag in obj.tags"
-                        :key="tag.id"
-                        small
-                        color="grey"
-                        text-color="white"
-                      >{{tag.get("name")}}</v-chip>
-                    </v-layout>
-                    <v-breadcrumbs
-                      class="pl-0"
-                      v-if="obj.breadcrumbs"
-                      :items="obj.breadcrumbs"
-                      divider=">"
-                    >
-                      <template v-slot:item="props">
-                        <a
-                          v-if="!props.item.disabled"
-                          @click="$router.push('/browser/' + props.item.id)"
-                        >{{ props.item.text }}</a>
-                        <p v-else style="margin: 0;">{{ props.item.text }}</p>
+                  <v-expansion-panel>
+                    <v-expansion-panel-content>
+                      <template v-slot:header>
+                        <div>Avancerat</div>
                       </template>
-                    </v-breadcrumbs>
-                  </v-card-text>
+                      <v-card>
+                        <v-card-text>
+                          <div style="width: 220px">
+                            <p style="margin: 0">
+                              <strong>Hämta från:</strong>
+                            </p>
+                            <v-layout>
+                              <v-checkbox
+                                @change="searchSettingsChanged"
+                                v-model="selectedObjectTypes"
+                                label="Containers"
+                                value="Container"
+                              ></v-checkbox>
+                              <v-checkbox
+                                @change="searchSettingsChanged"
+                                v-model="selectedObjectTypes"
+                                label="Saker"
+                                value="Thing"
+                              ></v-checkbox>
+                            </v-layout>
+                            <p style="margin: 0">
+                              <strong>Matcha mot:</strong>
+                            </p>
+                            <v-layout style="width: 320px">
+                              <v-checkbox
+                                @change="searchSettingsChanged"
+                                v-model="selectedObjectFields"
+                                label="Namn"
+                                value="name"
+                              ></v-checkbox>
+                              <v-checkbox
+                                @change="searchSettingsChanged"
+                                v-model="selectedObjectFields"
+                                label="Beskrivning"
+                                value="description"
+                              ></v-checkbox>
+                              <v-checkbox
+                                @change="searchSettingsChanged"
+                                v-if="!(selectedObjectTypes.indexOf('Thing') < 0)"
+                                v-model="matchAgainstTags"
+                                label="Taggar"
+                              ></v-checkbox>
+                            </v-layout>
+                          </div>
+                          <v-switch v-model="autoSearch" label="Auto sök"></v-switch>
+                        </v-card-text>
+                      </v-card>
+                    </v-expansion-panel-content>
+                  </v-expansion-panel>
+
+                  <v-layout flex row justify-center class="mt-3">
+                    <v-btn color="info" @click="submitSearch">
+                      <v-icon left dark>search</v-icon>Sök
+                    </v-btn>
+                  </v-layout>
+                </v-form>
+              </v-card-text>
+            </v-card>
+
+            <v-layout flex column>
+              <template v-for="(obj, index) in objects">
+                <v-divider :key="index" />
+                <v-layout
+                  :key="obj.obj.id"
+                  color="grey lighten-2"
+                  @click="openObj(obj)"
+                  ripple
+                  class="clickable"
+                >
+                  <v-layout flex row>
+                    <div class="object-icon-container">
+                      <v-img v-if="obj.image" :src="obj.image" width="70%" contain></v-img>
+                      <v-icon v-else x-large>{{obj.icon}}</v-icon>
+                    </div>
+                    <v-layout flex column>
+                      <v-card-title style="padding-bottom: 0">
+                        <p class="d-headline" style="margin: 0">{{obj.obj.get("name")}}</p>
+                      </v-card-title>
+                      <v-card-text>
+                        <div style="width: 100%">
+                          <v-icon>tag</v-icon>
+                          <v-chip
+                            v-for="tag in obj.tags"
+                            :key="tag.id"
+                            small
+                            color="grey"
+                            text-color="white"
+                            @click="openTag(tag)"
+                          >{{tag.get("name")}}</v-chip>
+                        </div>
+                        <v-breadcrumbs
+                          class="pl-0"
+                          v-if="obj.breadcrumbs"
+                          :items="obj.breadcrumbs"
+                          divider=">"
+                        >
+                          <template v-slot:item="props">
+                            <a
+                              v-if="!props.item.disabled"
+                              @click="$router.push('/browser/' + props.item.id)"
+                            >{{ props.item.text }}</a>
+                            <p v-else style="margin: 0;">{{ props.item.text }}</p>
+                          </template>
+                        </v-breadcrumbs>
+                      </v-card-text>
+                    </v-layout>
+                  </v-layout>
                 </v-layout>
-              </v-layout>
+              </template>
             </v-layout>
-          </template>
+          </v-card>
         </v-layout>
-      </v-card>
-    </v-layout>
+      </div>
+      <v-divider vertical></v-divider>
+      <div v-if="detailedView && selectedObject != null" class="side-view">
+        <div style="position: relative; z-index: 1;">
+          <v-btn
+            color="normal"
+            @click="detailedView = false"
+            style="position: absolute; top: 0; right: 0;"
+            icon
+          >
+            <v-icon>close</v-icon>
+          </v-btn>
+        </div>
+        <ObjectInfoView :edit="false" :selectedObject="selectedObject" />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -169,11 +158,10 @@ import Vue from "vue";
 import Component from "vue-class-component";
 import { Watch } from "vue-property-decorator";
 import Parse from "parse";
+import ObjectInfoView from "@/components/ObjectInfoView.vue";
 
 @Component({
-  // @ts-ignore
-  components: {},
-  props: {}
+  components: { ObjectInfoView }
 })
 export default class Search extends Vue {
   isLoading: boolean = false;
@@ -183,31 +171,13 @@ export default class Search extends Vue {
   autoSearch: boolean = true;
   allTags: any[] = [];
 
-  get isMobile() {
-    if (screen.width <= 700) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  // objectFields: any[] = [
-  //   { name: "Namn", value: "name" },
-  //   { name: "Beskrivning", value: "description" },
-  //   { name: "Container Typ", value: "type" },
-  //   { name: "Antal", value: "amount" }
-  //   //{ name: "Taggar", value: "tags" }
-  // ];
-
-  // objectTypes: any[] = [
-  //   { name: "Containrar", value: "Container" },
-  //   { name: "Things (Saker)", value: "Thing" }
-  // ];
-
-  searchQuery: string = "micro";
+  searchQuery: string = "";
   selectedObjectTypes: any[] = ["Thing", "Container"];
   selectedObjectFields: any[] = ["name"];
   matchAgainstTags: boolean = true;
+
+  detailedView: boolean = false;
+  selectedObject: any = null;
 
   @Watch("searchQuery")
   computeTyping() {
@@ -220,23 +190,91 @@ export default class Search extends Vue {
   @Watch("isTyping")
   computeIsTyping(val: string) {
     if (!val && this.autoSearch) {
-      this.searchObjects();
+      console.log("replacing history post");
+      this.$router.replace({
+        path: "search",
+        query: this.getSearchParamsObject()
+      });
     }
   }
 
-  beforeMount() {
-    this.fetchAllTags();
+  openObj(obj: any) {
+    this.selectedObject = obj;
+    this.detailedView = true;
   }
 
-  getObjectIcon(obj: any) {
-    switch (obj.className) {
-      case "Thing":
-        return "mdi-file";
-      case "Container":
-        return "folder";
-      case "Tag":
-        return "tag";
+  openTag(tag: any) {
+    this.$router.push({
+      path: "search",
+      query: {
+        q: tag.get("name"),
+        types: '["Thing"]',
+        fields: "[]",
+        tags: "true"
+      }
+    });
+  }
+
+  searchSettingsChanged() {
+    this.$router.replace({
+      path: "search",
+      query: this.getSearchParamsObject()
+    });
+  }
+
+  submitSearch() {
+    console.log("pushing to history");
+    this.$router.push({
+      path: "search",
+      query: this.getSearchParamsObject()
+    });
+  }
+
+  getSearchParamsObject() {
+    return {
+      q: this.searchQuery,
+      types: JSON.stringify(this.selectedObjectTypes),
+      fields: JSON.stringify(this.selectedObjectFields),
+      tags: this.matchAgainstTags.toString()
+    };
+  }
+
+  parseSearchParams(params: any) {
+    if (params.q) {
+      this.searchQuery = params.q;
     }
+    if (params.types) {
+      this.selectedObjectTypes = JSON.parse(params.types);
+    }
+    if (params.fields) {
+      this.selectedObjectFields = JSON.parse(params.fields);
+    }
+    if (params.tags) {
+      this.matchAgainstTags = params.tags == "true";
+    }
+  }
+
+  get isMobile() {
+    if (screen.width <= 700) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  beforeRouteEnter(to: any, from: any, next: any) {
+    console.log("beforeRouteEnter triggered");
+    next((vm: any) => {
+      vm.parseSearchParams(to.query);
+      vm.searchObjects();
+    });
+  }
+
+  beforeRouteUpdate(to: any, from: any, next: any) {
+    console.log("beforeRouteUpdate triggered");
+    this.parseSearchParams(to.query);
+    this.searchObjects();
+    next();
   }
 
   async fetchAllTags() {
@@ -249,6 +287,7 @@ export default class Search extends Vue {
         tag: x
       };
     });
+    console.log("he");
   }
 
   getTagChildren(id: string) {
@@ -282,9 +321,14 @@ export default class Search extends Vue {
   }
 
   async searchObjects() {
-    //@ts-ignore
-    if (this.searchQuery.length > 0 && this.$refs.form.validate()) {
+    this.searchQuery = this.searchQuery.trim();
+    if (this.searchQuery && this.searchQuery.length > 0) {
       this.isLoading = true;
+
+      if (this.allTags.length <= 0) {
+        await this.fetchAllTags();
+      }
+
       let regex = new RegExp("[A-ö]*" + this.searchQuery + "[A-ö]*", "gi");
       let results: any[] = [];
 
@@ -375,14 +419,6 @@ export default class Search extends Vue {
         }, [])
         .sort((a: any, b: any) => (a.score < b.score ? 1 : -1));
       this.isLoading = false;
-    } else {
-      this.objects = [];
-    }
-  }
-
-  openObj(obj: any) {
-    if (obj.className != "Tag") {
-      this.$router.push("/browser/" + obj.id);
     }
   }
 }
@@ -400,13 +436,41 @@ export default class Search extends Vue {
   padding: 0px 8px !important;
 }
 
+.wrapper-view {
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  height: 100%;
+}
+
+.main-view {
+  width: 100%;
+  overflow-y: auto;
+}
+
+.side-view {
+  width: 35%;
+  min-width: 400px;
+  overflow: hidden auto;
+
+  @media screen and (max-width: 700px) {
+    width: 100vw;
+    min-width: 100vw;
+    margin: 0;
+  }
+}
+
 .main-wrapper {
-  width: 70%;
+  width: 80%;
   margin: 30px 0;
 
   @media screen and (max-width: 700px) {
     width: 100%;
     margin: 0;
   }
+}
+
+.clickable:hover {
+  background-color: rgba(0, 0, 0, 0.08);
 }
 </style>

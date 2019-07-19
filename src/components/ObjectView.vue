@@ -1,7 +1,7 @@
 <template>
   <div @click.exact.capture="view == 'block'?selectObject():null" class="view">
     <div v-if="view == 'block'" class="grid-container">
-      <div v-for="obj in objects" class="grid-item noselect" :key="obj.obj.id">
+      <div v-for="obj in blobkObjects" class="grid-item noselect" :key="obj.obj.id">
         <v-card
           :color="isSelected(obj)? 'blue' : 'cyan darken-2'"
           class="white--text"
@@ -14,12 +14,12 @@
           :ripple="false"
         >
           <v-layout width="100%" style="height: calc(100% - 73px)">
-            <v-img v-if="obj.image.length > 0" :src="obj.image"></v-img>
+            <v-img v-if="obj.image.length > 0" :src="obj.image" contain></v-img>
             <v-layout v-else-if="toc" flex justify-center align-center>
               <v-icon x-large color="white">shape</v-icon>
             </v-layout>
             <v-layout v-else flex justify-center align-center>
-              <v-icon x-large color="white">{{getIconByType(obj)}}</v-icon>
+              <v-icon x-large color="white">{{obj.icon}}</v-icon>
             </v-layout>
           </v-layout>
           <v-divider></v-divider>
@@ -171,6 +171,9 @@
               <v-btn icon @click="$emit('info', props.item.obj)">
                 <v-icon>mdi-information-outline</v-icon>
               </v-btn>
+              <v-btn icon @click="$emit('openCrForm', {obj: props.item.obj, item: toc})">
+                <v-icon>edit</v-icon>
+              </v-btn>
               <v-menu transition="slide-y-transition" bottom>
                 <template v-slot:activator="{ on }">
                   <v-btn icon v-on="on" @click="selectObject(props.item)">
@@ -189,15 +192,6 @@
                       <v-icon color="grey">mdi-folder-move</v-icon>
                     </v-list-tile-avatar>
                     <v-list-tile-title>Flytta</v-list-tile-title>
-                  </v-list-tile>
-                  <v-list-tile
-                    avatar
-                    @click="$emit('openCrForm', {obj: props.item.obj, item: toc})"
-                  >
-                    <v-list-tile-avatar>
-                      <v-icon color="grey">edit</v-icon>
-                    </v-list-tile-avatar>
-                    <v-list-tile-title>Redigera</v-list-tile-title>
                   </v-list-tile>
                   <v-list-tile avatar @click="$emit('dupObj', props.item.obj)">
                     <v-list-tile-avatar>
@@ -231,11 +225,8 @@
                 :src="props.item.image"
                 contain
               ></v-img>
-              <v-layout style="height: 100px" v-else-if="toc" flex justify-center align-center>
-                <v-icon x-large color="grey">add</v-icon>
-              </v-layout>
               <v-layout style="height: 100px" v-else flex justify-center align-center>
-                <v-icon x-large color="gray">{{getIconByType(props.item)}}</v-icon>
+                <v-icon x-large color="gray">{{props.item.icon}}</v-icon>
               </v-layout>
             </v-flex>
             <v-divider vertical></v-divider>
@@ -247,6 +238,7 @@
                 small
                 color="grey"
                 text-color="white"
+                @click="openTag(tag)"
               >
                 <v-avatar>
                   <v-icon>tag</v-icon>
@@ -328,15 +320,10 @@ export default class ObjectView extends Vue {
     });
   }
 
-  getIconByType(obj: any) {
-    let type = obj.obj.get("type");
-    if (type == "city" || type == "stad") {
-      return "mdi-city";
-    } else if (type == "house" || type == "hus") {
-      return "mdi-home-varient";
-    } else {
-      return "mdi-briefcase";
-    }
+  get blobkObjects() {
+    return this.objects.sort((a: any, b: any) =>
+      a.obj.get("name") < b.obj.get("name") ? 1 : -1
+    );
   }
 
   selectObject(obj: any) {
@@ -351,20 +338,32 @@ export default class ObjectView extends Vue {
     }
   }
 
+  openTag(tag: any) {
+    this.$router.push({
+      path: "search",
+      query: {
+        q: tag.get("name"),
+        types: '["Thing"]',
+        fields: "[]",
+        tags: "true"
+      }
+    });
+  }
+
   shiftSelectObject(obj: any) {
     if (this.shiftSelectStartPoint) {
       if (this.shiftSelectStartPoint.className == obj.obj.className) {
-        let startIndex = this.objects.findIndex(
+        let startIndex = this.blobkObjects.findIndex(
           x => x.obj == this.shiftSelectStartPoint
         );
-        let endIndex = this.objects.findIndex(x => x.obj == obj.obj);
+        let endIndex = this.blobkObjects.findIndex(x => x.obj == obj.obj);
         this.selectedItems.splice(startIndex, 1);
         for (
           let i = Math.min(startIndex, endIndex);
           i < Math.max(startIndex, endIndex) + 1;
           i++
         ) {
-          this.selectedItems.push(this.objects[i]);
+          this.selectedItems.push(this.blobkObjects[i]);
         }
       }
     } else {

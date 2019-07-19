@@ -73,16 +73,6 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-dialog v-model="loadingDialog" persistent max-width="300px">
-      <v-card>
-        <v-card-title class="headline">Loading..</v-card-title>
-        <v-card-text>
-          <v-layout flex row justify-center align-center style="margin: 10px 0 30px 0">
-            <v-progress-circular :value="0" indeterminate size="64" width="6"></v-progress-circular>
-          </v-layout>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
     <v-dialog v-model="moveDialog" max-width="700px">
       <v-card>
         <v-card-title class="headline">Flytta {{selectedObject? selectedObject.obj.get("name"): ""}}</v-card-title>
@@ -96,6 +86,12 @@
     </v-dialog>
     <div class="wrapper-view">
       <div class="main-view">
+        <v-progress-linear
+          indeterminate
+          :active="loadingDialog"
+          height="5"
+          style="margin: 0; position: fixed; top: 48px"
+        ></v-progress-linear>
         <div class="breadcrumb">
           <v-btn large icon @click="goToParent">
             <v-icon large>arrow_back</v-icon>
@@ -112,48 +108,7 @@
             </template>
           </v-breadcrumbs>
         </div>
-        <div v-if="currentObject && currentObject.className === 'Thing'">
-          <v-layout flex row reverse style="margin-right: 30px">
-            <v-icon medium color="grey" @click="openCrForm({obj: currentObject, item: true})">edit</v-icon>
-            <v-icon medium class="mr-2" color="grey" @click="setDeletableObj(currentObject)">delete</v-icon>
-          </v-layout>
-          <v-card style="margin: 10px 30px 30px 30px">
-            <v-card-title>
-              <div
-                style="width: 100%; display: flex; flex-direction: row; justify-content: space-between;"
-              >
-                <div style="width: 80%; ">
-                  <p
-                    class="headline"
-                    style="overflow: hidden; text-overflow: ellipsis; margin: 0"
-                  >{{thingInformation.name}}</p>
-                </div>
-                <div style="width: 20%;">
-                  <p
-                    style="overflow: hidden; text-overflow: ellipsis; margin: 0; text-align: right"
-                    class="headline font-weight-light"
-                  >{{thingInformation.amount}}</p>
-                </div>
-              </div>
-            </v-card-title>
-            <v-layout flex row align-center style="padding-left: 12px">
-              <v-chip
-                v-for="tag in thingInformation.tags"
-                :key="tag.id"
-                small
-                color="grey"
-                text-color="white"
-              >
-                <v-avatar>
-                  <v-icon>tag</v-icon>
-                </v-avatar>
-                {{tag.get("name")}}
-              </v-chip>
-            </v-layout>
-            <v-card-text width="100%" v-html="thingInformation.description"></v-card-text>
-          </v-card>
-        </div>
-        <div v-else>
+        <div>
           <v-layout
             flex
             row
@@ -269,103 +224,13 @@
             <v-icon>close</v-icon>
           </v-btn>
         </div>
-        <template>
-          <v-card-title>
-            <span>
-              <v-icon>{{getIconByType(selectedObject.obj)}}</v-icon>
-            </span>
-            <span class="headline ml-3">{{selectedObject.obj.get("name")}}</span>
-          </v-card-title>
-          <v-layout width="100%" flex row justify-center v-if="selectedObject.image">
-            <div style="width: 70%">
-              <v-img :src="selectedObject.image" aspect-ratio="1" contain></v-img>
-            </div>
-          </v-layout>
-          <template
-            v-if="selectedObject.obj.className == 'Thing' && selectedObject.tags.length > 0"
-          >
-            <v-divider class="mt-3"></v-divider>
-            <div class="mt-3 mr-2 ml-2" style="width: 100%">
-              <v-chip
-                v-for="tag in selectedObject.tags"
-                :key="tag.id"
-                small
-                color="grey"
-                text-color="white"
-              >
-                <v-avatar>
-                  <v-icon>tag</v-icon>
-                </v-avatar>
-                {{tag.get("name")}}
-              </v-chip>
-            </div>
-          </template>
-
-          <template v-if="markedDesc(selectedObject.obj).length > 0">
-            <v-card-text v-html="markedDesc(selectedObject.obj)" />
-          </template>
-          <v-divider></v-divider>
-          <v-card-text>
-            <table style="width: 100%; font-size: 16px">
-              <tbody>
-                <tr v-if="selectedObject.obj.className == 'Container'">
-                  <td>Innehåller</td>
-                  <td>
-                    <strong>{{selectedObject.amount.con + " Containrar | " + selectedObject.amount.things + " Saker"}}</strong>
-                  </td>
-                </tr>
-                <tr v-if="selectedObject.obj.className == 'Container'">
-                  <td>Typ</td>
-                  <td>
-                    <strong>{{selectedObject.obj.get("type")? selectedObject.obj.get("type"): "--"}}</strong>
-                  </td>
-                </tr>
-                <tr v-if="selectedObject.obj.className == 'Thing'">
-                  <td>Antal</td>
-                  <td>
-                    <strong>{{selectedObject.obj.get("amount")? selectedObject.obj.get("amount"): "--"}}</strong>
-                  </td>
-                </tr>
-                <tr>
-                  <td>Ligger i</td>
-                  <td>
-                    <strong>{{selectedObject.obj.get("parent")? selectedObject.obj.get("parent").get("name"): "Start"}}</strong>
-                  </td>
-                </tr>
-                <tr>
-                  <td>Skapad</td>
-                  <td>
-                    <strong>{{formatDateTime(selectedObject.obj.get("createdAt"))}}</strong>
-                  </td>
-                </tr>
-                <tr>
-                  <td>Uppdaterad</td>
-                  <td>
-                    <strong>{{formatDateTime(selectedObject.obj.get("updatedAt"))}}</strong>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </v-card-text>
-          <v-card-text class="mt-2">
-            <v-layout flex row justify-center>
-              <v-icon
-                medium
-                class="mr-2"
-                color="grey"
-                @click="openCrForm({obj: selectedObject.obj, item: true})"
-              >edit</v-icon>
-              <v-icon
-                medium
-                class="ml-2"
-                color="grey"
-                @click="setDeletableObj(selectedObject.obj)"
-              >delete</v-icon>
-            </v-layout>
-          </v-card-text>
-        </template>
+        <ObjectInfoView
+          :edit="true"
+          :selectedObject="selectedObject"
+          @editBtn="openCrForm({obj: selectedObject.obj, item: selectedObject.obj.className == 'Thing'})"
+          @deleteBtn="setDeletableObj(selectedObject.obj)"
+        />
       </div>
-
       <!-- <v-footer class="mt-5">Footer</v-footer> -->
     </div>
   </div>
@@ -379,13 +244,15 @@ import Parse from "parse";
 import CreateObject from "@/components/CreateObject.vue";
 import BrowseContainer from "@/components/BrowseContainer.vue";
 import ObjectView from "@/components/ObjectView.vue";
+import ObjectInfoView from "@/components/ObjectInfoView.vue";
 
 @Component({
   // @ts-ignore
   components: {
     CreateObject,
     BrowseContainer,
-    ObjectView
+    ObjectView,
+    ObjectInfoView
   }
 })
 export default class Browser extends Vue {
@@ -527,13 +394,12 @@ export default class Browser extends Vue {
       if (result!.className == "Container") {
         this.changeContainer(result);
       } else {
-        this.currentObject = result;
-        this.updateThingInfo();
         this.$store
           .dispatch("getBreadCrumbs", this.currentObject)
           .then((result: any) => {
             this.breadcrumbs = result;
           });
+        this.objSelected(await this.$store.dispatch("parseThing", result));
       }
     } else {
       this.changeContainer(null);
@@ -887,6 +753,8 @@ export default class Browser extends Vue {
         .dispatch("deleteObject", obj)
         .then((result: any) => {
           this.info("Tog bort " + result.get("name"));
+          this.detailedView = false;
+          this.unselectAll();
           if (result.className == "Container") {
             this.changeContainer(this.currentObject);
           } else {
@@ -991,20 +859,6 @@ export default class Browser extends Vue {
       );
     }
   }
-  getIconByType(obj: any) {
-    if (obj.className == "Container") {
-      let type = obj.get("type");
-      if (type == "city" || type == "stad") {
-        return "mdi-city";
-      } else if (type == "house" || type == "hus") {
-        return "mdi-home-varient";
-      } else {
-        return "mdi-briefcase";
-      }
-    } else {
-      return "mdi-shape";
-    }
-  }
 }
 </script>
 
@@ -1049,5 +903,11 @@ export default class Browser extends Vue {
   width: 35%;
   min-width: 400px;
   overflow: hidden auto;
+
+  @media screen and (max-width: 700px) {
+    width: 100vw;
+    min-width: 100vw;
+    margin: 0;
+  }
 }
 </style>

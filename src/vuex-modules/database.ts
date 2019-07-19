@@ -47,8 +47,17 @@ export default {
                 if (image) {
                     img_url = image.url()
                 }
+                let type = container.get("type");
+                let icon = ""
+                if (type == "city" || type == "stad") {
+                    icon = "mdi-city";
+                } else if (type == "house" || type == "hus") {
+                    icon = "mdi-home-varient";
+                } else {
+                    icon = "mdi-briefcase";
+                }
 
-                resolve({ obj: container, amount: amount, short_desc: removeMd(container.get("description")), image: img_url })
+                resolve({ obj: container, amount: amount, short_desc: removeMd(container.get("description")), image: img_url, icon: icon })
             })
         },
 
@@ -65,7 +74,7 @@ export default {
                 if (image) {
                     img_url = image.url()
                 }
-                resolve({ obj: thing, tags: tags, short_desc: removeMd(thing.get("description")), image: img_url });
+                resolve({ obj: thing, tags: tags, short_desc: removeMd(thing.get("description")), image: img_url, icon: "mdi-shape" });
             })
         },
 

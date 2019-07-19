@@ -193,10 +193,26 @@ export default class BrowseTags extends Vue {
   }
 
   openedUpdated(opened: any) {
+    console.log("openedUpdate triggered");
     if (this.search == "") {
       this.openedPreFiltering = opened;
     }
-    console.log("openedUpdate triggered");
+    for (const activeItemId of this.currentlyActive) {
+      let ascendants = this.getAscendants(activeItemId);
+      let shouldStayActive = true;
+      for (let ascendant of ascendants) {
+        if (opened.indexOf(ascendant.id) == -1) {
+          shouldStayActive = false;
+        }
+      }
+      if (!shouldStayActive) {
+        console.log("removing active, it was hidden");
+        this.currentlyActive.splice(
+          this.currentlyActive.indexOf(activeItemId),
+          1
+        );
+      }
+    }
   }
 
   openAllFunc() {
@@ -223,8 +239,36 @@ export default class BrowseTags extends Vue {
     return anyMatch;
   }
 
+  getAscendants(item: any) {
+    let ascendants: any = [];
+
+    function isAscendantTo(item: any, candidate: any, ascendants: any[]) {
+      if (item == candidate) {
+        //condition 1 is a match
+        return true;
+      } else if (!candidate.children) {
+        //condition 2 is no more children to search
+        return false;
+      } else {
+        //condition 3 search recursively
+        for (let child of candidate.children) {
+          if (isAscendantTo(item, child, ascendants)) {
+            ascendants.push(candidate);
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    for (let candidate of this.tagTree) {
+      isAscendantTo(this.getItemById(item), candidate, ascendants);
+    }
+    return ascendants;
+  }
+
   getParentOf(child: any) {
-    let foundParent: any = [null]; // hack to make sure the foundParent is passed around as reference (by using an array). Couldn't make it work with object for some F*CKED up reason!
+    let foundParent: any = [null]; // hack to make sure the foundParent is passed around as reference (by using an array). Couldn't make it work with object because of copy of reference!
     this.tagTree.forEach((candidate: any) => {
       this.checkCandidateAgainstChildren(candidate, child, foundParent);
     });
@@ -344,7 +388,6 @@ export default class BrowseTags extends Vue {
     }
   }
 
-  // efter lunch: Få denna att returnera tagtree id och inte parse id
   get selectedNodes() {
     if (this.shouldUpdate) {
       console.log("get selectNodes called");
@@ -374,15 +417,6 @@ export default class BrowseTags extends Vue {
   }
 
   async fetchAllTags() {
-    // const query = new Parse.Query("Tag");
-    // const result = await query.find();
-    // this.tags = result.reduce((acc: any, x: any) => {
-    //   acc[x.id] = x;
-    //   return acc;
-    // }, {});
-
-    //this.selectedItemsProp = this.currentlyActive.map((x: any) => this.tags[x]);
-
     this.tagTree = [];
     this.tagTree = await this.fetchRootTags();
     for (let i = 0; i < this.tagTree.length; i++) {
