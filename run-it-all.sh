@@ -3,4 +3,4 @@
 # TODO: Possibly build frontend here
 
 
-docker-compose --env-file ../.env up --build
+docker-compose --file ./backend/docker-compose.yml --env-file ./.env up --build
