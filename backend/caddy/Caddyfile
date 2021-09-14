@@ -1,0 +1,37 @@
+(cors) {
+  @{args.0} header Origin {args.0}
+  header @{args.0} Access-Control-Allow-Origin {args.0}
+}
+
+# @websockets {
+# 	header Connection *Upgrade*
+# 	header Upgrade websocket
+# }
+
+{env.BACKEND_SERVER} {
+  # Important to use the route directive so that the reverse_proxy is matched first
+  # (default is try_files before reverse_proxy)
+  route {
+    # import cors localhost
+    reverse_proxy /parse* parse:1337 {
+      # header_up Host {host}
+    }
+    # reverse_proxy parse:1337 {
+    #   # header_up Host {host}
+    # }
+    # reverse_proxy @websocket parse:1337
+      # try_files {path} /index.html
+      # file_server {
+      #   root /srv
+      # }
+    # }
+
+    root * /dist/pwa
+    try_files {path} /index.html #rewrite request to index if no file matches
+    file_server {
+      root /dist/pwa
+    }
+  }
+  
+  log
+}

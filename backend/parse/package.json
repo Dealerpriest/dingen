@@ -1,0 +1,24 @@
+{
+  "name": "parse",
+  "version": "1.0.0",
+  "description": "running parse server as express app so we can add extra stuff on top of it",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "express": "^4.17.1",
+    "jsonwebtoken": "^8.5.1",
+    "parse-server": "^4.5.0",
+    "parse-server-generic-email-adapter": "0.0.4",
+    "rsa-pem-from-mod-exp": "^0.8.4",
+    "simple-parse-smtp-adapter": "^1.0.9",
+    "swf-auth": "file:./swf-auth"
+  },
+  "devDependencies": {
+    "dotenv": "^8.2.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Gunnar Oledal",
+  "license": "ISC"
+}
