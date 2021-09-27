@@ -12,14 +12,15 @@ services:
       # - BACKEND_SERVER_PROTOCOL
       - BACKEND_SERVER
     volumes:
-      - ~/docker-persistence/caddy:/data
+      # - ~/docker-persistence/caddy:/data
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile
       - ../app/dist/:/dist/
   mongodb:
-    image: 'bitnami/mongodb:latest'
+    image: 'mongo'
     volumes:
-      - ~/docker-persistence/mongodb_data:/bitnami/mongodb
-      - ~/docker-persistence/mongodb_backup:/bitnami/mongobackup
+      # - ~/docker-persistence/mongodb_data:/bitnami/mongodb
+      # - ~/docker-persistence/mongodb_backup:/bitnami/mongobackup
+      - ./mongodb-data:/data/db
   # parse:
   #   image: 'parseplatform/parse-server'
   #   environment:
