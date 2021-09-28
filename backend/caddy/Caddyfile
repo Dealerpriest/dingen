@@ -13,7 +13,7 @@
   # (default is try_files before reverse_proxy)
   route {
     # import cors localhost
-    reverse_proxy /parse* parse:1337 {
+    # reverse_proxy /parse* parse:1337 {
       # header_up Host {host}
     }
     # reverse_proxy parse:1337 {
@@ -26,10 +26,10 @@
       # }
     # }
 
-    root * /dist/pwa
+    root * /dist
     try_files {path} /index.html #rewrite request to index if no file matches
     file_server {
-      root /dist/pwa
+      root /dist
     }
   }
   
