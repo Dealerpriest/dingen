@@ -12,7 +12,7 @@ services:
       # - BACKEND_SERVER_PROTOCOL
       - BACKEND_SERVER
     volumes:
-      # - ~/docker-persistence/caddy:/data
+      - ~/docker-persistence/caddy:/data
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile
       - ../app/dist/:/dist/
   mongodb:
@@ -20,23 +20,8 @@ services:
     volumes:
       # - ~/docker-persistence/mongodb_data:/bitnami/mongodb
       # - ~/docker-persistence/mongodb_backup:/bitnami/mongobackup
-      - ./mongodb-data:/data/db
-  # parse:
-  #   image: 'parseplatform/parse-server'
-  #   environment:
-  #     #passing these variable through from shell environment
-  #     - PARSE_SERVER_APPLICATION_ID=${PARSE_APP_ID}
-  #     - PARSE_SERVER_MASTER_KEY=${PARSE_MASTER_KEY}
-  #     - PARSE_SERVER_DATABASE_URI=mongodb://mongodb:27017/parse
-  #     - PARSE_SERVER_START_LIVE_QUERY_SERVER=1
-  #     - PARSE_SERVER_CLOUD=//parse-server/cloud/main.js
-  #     - PARSE_SERVER_LIVE_QUERY=${PARSE_LIVEQUERY_CLASSES}
-  #   expose:
-  #     - "1337"
-  #   volumes:
-  #     - ./parse-cloud-code:/parse-server/cloud
-  #   depends_on:
-  #     - mongodb
+      # - ./mongodb-data:/data/db
+      - ~/docker-presistence/mongodb-data:/data/db
   parse:
     build: ./parse
     environment:
@@ -50,8 +35,8 @@ services:
       - PARSE_SERVER_PUBLIC_URL=https://${BACKEND_SERVER}/parse
       - PARSE_PORT
       #passing these variable through from shell environment
-      - GMAIL_ACCOUNT
-      - GMAIL_PASSWORD
+      # - GMAIL_ACCOUNT
+      # - GMAIL_PASSWORD
     expose:
       - "1337"
     depends_on:
