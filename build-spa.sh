@@ -3,8 +3,8 @@
 echo "Building SPA."
 echo ""
 
-# echo "removing previous build"
-rm -r ./backend/caddy/dist/
+echo "removing previous build"
+rm -r ./backend/caddy/dist/spa
 
 
 echo "reading .env file and copies relevant variables"
@@ -16,10 +16,10 @@ awk 'NR==1, /BACKEND_ONLY/ {print}' .env | awk 'length>1 && $1 !~ "#" {print "VU
 echo "running npm install"
 npm --prefix ./app install
 echo "running npm build"
-cd ./app
-npm run build
-# npm --prefix ./app run build --skip-plugins pwa
+# cd ./app
+# npm run build
+npm --prefix ./app run build
 
 
 # echo "copy new build into folder ../caddy/dist/"
-cp -r ./app/dist/ ./backend/caddy/dist/
+cp -r ./app/dist/ ./backend/caddy/dist/spa/

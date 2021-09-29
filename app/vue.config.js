@@ -6,5 +6,9 @@ module.exports = {
       args[0].memoryLimit = 512;
       return args;
     })
+
+    config.plugins.delete('pwa');
+    config.plugins.delete('workbox');
+
   }
 }
