@@ -14,7 +14,7 @@ services:
     volumes:
       - ~/docker-persistence/caddy:/data
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile
-      - ../app/dist/:/dist/
+      - ./caddy/dist:/dist
   mongodb:
     image: 'mongo'
     volumes:

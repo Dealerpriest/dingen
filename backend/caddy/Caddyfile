@@ -27,10 +27,8 @@
     # }
 
     root * /dist
-    try_files {path} /index.html #rewrite request to index if no file matches
-    file_server {
-      root /dist
-    }
+    try_files {path} / #rewrite request to index if no file matches
+    file_server
   }
   
   log
